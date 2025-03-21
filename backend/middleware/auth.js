@@ -10,7 +10,7 @@ const auth = async (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findOne({ _id: decoded.userId });
+        const user = await User.findById(decoded.userId).select('-password');
 
         if (!user) {
             throw new Error();
@@ -20,6 +20,7 @@ const auth = async (req, res, next) => {
         req.token = token;
         next();
     } catch (error) {
+        console.error('Auth middleware error:', error);
         res.status(401).json({ message: 'Please authenticate.' });
     }
 };

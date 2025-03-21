@@ -9,26 +9,58 @@ const jobSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    employer: {
+    recruiter: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
+    category: {
+        type: String,
+        required: true,
+        enum: [
+            'Web Development',
+            'Game Development',
+            'App Development',
+            'Data Science & Analytics',
+            'UI/UX & Graphic Design',
+            'Software Engineering',
+            'Cybersecurity',
+            'Digital Marketing',
+            'Product Management',
+            'Quality Assurance & Testing',
+            'AI & Machine Learning',
+            'IoT & Embedded Systems',
+            'Blockchain',
+            'AR/VR Development',
+            'Networking & System Administration'
+        ]
+    },
     requiredSkills: [{
-        name: String,
+        name: {
+            type: String,
+            required: true
+        },
         level: {
             type: String,
-            enum: ['Beginner', 'Intermediate', 'Advanced', 'Expert']
+            enum: ['Beginner', 'Intermediate', 'Advanced', 'Expert'],
+            required: true
         }
     }],
-    budget: {
-        type: Number,
-        required: true
+    pay: {
+        amount: {
+            type: Number,
+            required: true
+        },
+        type: {
+            type: String,
+            enum: ['hourly', 'fixed'],
+            required: true
+        }
     },
     duration: {
-        type: String,
-        enum: ['Less than 1 week', '1-2 weeks', '2-4 weeks', '1-2 months', 'More than 2 months'],
-        required: true
+        type: Number,
+        required: true,
+        min: 1
     },
     status: {
         type: String,
@@ -38,19 +70,24 @@ const jobSchema = new mongoose.Schema({
     applicants: [{
         student: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
-        },
-        appliedAt: {
-            type: Date,
-            default: Date.now
+            ref: 'User',
+            required: true
         },
         status: {
             type: String,
             enum: ['Pending', 'Accepted', 'Rejected'],
             default: 'Pending'
+        },
+        appliedAt: {
+            type: Date,
+            default: Date.now
         }
     }],
     createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
         type: Date,
         default: Date.now
     },
@@ -62,5 +99,11 @@ const jobSchema = new mongoose.Schema({
 
 // Index for text search
 jobSchema.index({ title: 'text', description: 'text' });
+
+// Update the updatedAt timestamp before saving
+jobSchema.pre('save', function(next) {
+    this.updatedAt = Date.now();
+    next();
+});
 
 module.exports = mongoose.model('Job', jobSchema); 

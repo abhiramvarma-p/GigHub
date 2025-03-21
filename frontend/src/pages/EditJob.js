@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Paper,
@@ -16,7 +16,7 @@ import {
   Alert,
   InputAdornment,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
@@ -38,8 +38,9 @@ const CATEGORIES = [
   'Networking & System Administration'
 ];
 
-const CreateJob = () => {
+const EditJob = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
@@ -55,7 +56,7 @@ const CreateJob = () => {
     location: '',
     type: 'remote',
     experience: 'Beginner',
-    deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    deadline: '',
     status: 'Open'
   });
   const [newSkill, setNewSkill] = useState('');
@@ -63,12 +64,41 @@ const CreateJob = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Redirect if not a recruiter
-  React.useEffect(() => {
-    if (user && user.role !== 'recruiter') {
-      navigate('/');
+  useEffect(() => {
+    fetchJobDetails();
+  }, [id]);
+
+  const fetchJobDetails = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5000/api/jobs/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const jobData = response.data;
+      
+      // Set form data with proper defaults
+      setFormData({
+        title: jobData.title || '',
+        description: jobData.description || '',
+        requirements: jobData.requirements || '',
+        pay: {
+          amount: jobData.pay?.amount || '',
+          type: jobData.pay?.type || 'fixed'
+        },
+        duration: jobData.duration || '',
+        category: jobData.category || '',
+        deadline: jobData.deadline ? new Date(jobData.deadline).toISOString().split('T')[0] : '',
+        status: jobData.status || 'Open',
+        requiredSkills: jobData.requiredSkills?.map(skill => skill.name) || [],
+        experience: jobData.requiredSkills?.[0]?.level || 'Beginner'
+      });
+    } catch (error) {
+      console.error('Error fetching job details:', error);
+      setError(error.response?.data?.message || 'Failed to fetch job details');
+    } finally {
+      setLoading(false);
     }
-  }, [user, navigate]);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -91,7 +121,6 @@ const CreateJob = () => {
 
   const handleAddSkill = (e) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevent form submission
     if (newSkill.trim() && !formData.requiredSkills.includes(newSkill.trim())) {
       setFormData(prev => ({
         ...prev,
@@ -116,7 +145,6 @@ const CreateJob = () => {
     try {
       setLoading(true);
 
-      // Validate required fields
       if (!formData.title || !formData.description || !formData.requirements || 
           !formData.pay.amount || !formData.duration || !formData.category || !formData.deadline) {
         setError('Please fill in all required fields');
@@ -134,17 +162,12 @@ const CreateJob = () => {
         requiredSkills: formData.requiredSkills.map(skill => ({
           name: skill,
           level: formData.experience
-        })),
-        recruiter: user._id,
-        status: formData.status,
-        createdAt: new Date().toISOString()
+        }))
       };
 
-      console.log('Submitting job data:', jobData);
-
       const token = localStorage.getItem('token');
-      const response = await axios.post(
-        'http://localhost:5000/api/jobs',
+      await axios.patch(
+        `http://localhost:5000/api/jobs/${id}`,
         jobData,
         {
           headers: { 
@@ -154,26 +177,13 @@ const CreateJob = () => {
         }
       );
 
-      console.log('Job creation response:', response.data);
-      setSuccess('Job created successfully!');
-      
-      // Wait a moment before navigating to show the success message
+      setSuccess('Job updated successfully!');
       setTimeout(() => {
-        navigate('/active-gigs');
+        navigate('/jobs');
       }, 2000);
     } catch (error) {
-      console.error('Error creating job:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error || 
-                          error.message || 
-                          'Failed to create job. Please try again.';
-      setError(`Error: ${errorMessage}`);
-      
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        console.error('Error status:', error.response.status);
-        console.error('Error headers:', error.response.headers);
-      }
+      console.error('Error updating job:', error);
+      setError(error.response?.data?.message || 'Failed to update job');
     } finally {
       setLoading(false);
     }
@@ -187,7 +197,7 @@ const CreateJob = () => {
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom>
-          Create New Job
+          Edit Job
         </Typography>
         
         {error && (
@@ -389,18 +399,16 @@ const CreateJob = () => {
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
                 <Button
                   variant="outlined"
-                  onClick={() => navigate('/profile')}
+                  onClick={() => navigate('/jobs')}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   variant="contained"
-                  disabled={!formData.title || !formData.description || 
-                           !formData.requirements || !formData.pay.amount || 
-                           !formData.duration || !formData.category || !formData.deadline}
+                  disabled={loading}
                 >
-                  Create Job
+                  Update Job
                 </Button>
               </Box>
             </Grid>
@@ -411,4 +419,4 @@ const CreateJob = () => {
   );
 };
 
-export default CreateJob; 
+export default EditJob; 

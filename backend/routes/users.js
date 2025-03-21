@@ -2,6 +2,41 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
+
+// Configure multer for handling file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/profile-pictures';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
+    cb(null, uniqueFilename);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Not an image! Please upload an image file.'), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 // Get user profile by ID
 router.get('/:id', async (req, res) => {
@@ -10,7 +45,30 @@ router.get('/:id', async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        res.json(user);
+
+        // Return user data based on role
+        const userResponse = {
+            _id: user._id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            skills: user.skills || [],
+            bio: user.bio,
+            profilePicture: user.profilePicture,
+            contactInfo: user.contactInfo || {}
+        };
+
+        if (user.role === 'student') {
+            userResponse.college = user.college;
+            userResponse.major = user.major;
+            userResponse.graduationYear = user.graduationYear;
+        } else if (user.role === 'recruiter') {
+            userResponse.company = user.company;
+            userResponse.position = user.position;
+            userResponse.companyWebsite = user.companyWebsite;
+        }
+
+        res.json(userResponse);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -19,7 +77,17 @@ router.get('/:id', async (req, res) => {
 // Update user profile
 router.patch('/profile', auth, async (req, res) => {
     const updates = Object.keys(req.body);
-    const allowedUpdates = ['name', 'college', 'major', 'graduationYear', 'bio', 'contactInfo'];
+    const allowedUpdates = [
+        'name',
+        'bio',
+        'college',
+        'major',
+        'graduationYear',
+        'company',
+        'position',
+        'companyWebsite',
+        'contactInfo'
+    ];
     const isValidOperation = updates.every(update => allowedUpdates.includes(update));
 
     if (!isValidOperation) {
@@ -27,7 +95,27 @@ router.patch('/profile', auth, async (req, res) => {
     }
 
     try {
-        updates.forEach(update => req.user[update] = req.body[update]);
+        // Handle role-specific validation
+        if (req.user.role === 'student') {
+            if (req.body.college) req.user.college = req.body.college;
+            if (req.body.major) req.user.major = req.body.major;
+            if (req.body.graduationYear) req.user.graduationYear = req.body.graduationYear;
+        } else if (req.user.role === 'recruiter') {
+            if (req.body.company) req.user.company = req.body.company;
+            if (req.body.position) req.user.position = req.body.position;
+            if (req.body.companyWebsite) req.user.companyWebsite = req.body.companyWebsite;
+        }
+
+        // Handle common fields
+        if (req.body.name) req.user.name = req.body.name;
+        if (req.body.bio) req.user.bio = req.body.bio;
+        if (req.body.contactInfo) {
+            req.user.contactInfo = {
+                ...req.user.contactInfo,
+                ...req.body.contactInfo
+            };
+        }
+
         await req.user.save();
         res.json(req.user);
     } catch (error) {
@@ -115,6 +203,38 @@ router.get('/recommended-jobs', auth, async (req, res) => {
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
+});
+
+// Upload profile picture
+router.post('/profile-picture', auth, upload.single('profilePicture'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Delete old profile picture if it exists
+    if (user.profilePicture) {
+      const oldPicturePath = path.join(__dirname, '..', user.profilePicture);
+      if (fs.existsSync(oldPicturePath)) {
+        fs.unlinkSync(oldPicturePath);
+      }
+    }
+
+    // Update user's profile picture URL
+    const imageUrl = `/uploads/profile-pictures/${req.file.filename}`;
+    user.profilePicture = imageUrl;
+    await user.save();
+
+    res.json({ imageUrl });
+  } catch (error) {
+    console.error('Error uploading profile picture:', error);
+    res.status(500).json({ message: 'Error uploading profile picture' });
+  }
 });
 
 module.exports = router; 

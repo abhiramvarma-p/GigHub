@@ -22,6 +22,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
+  Alert,
+  Stack,
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
@@ -32,9 +35,8 @@ const JobDetail = () => {
   const { user } = useAuth();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [openApplicationDialog, setOpenApplicationDialog] = useState(false);
-  const [applicationStatus, setApplicationStatus] = useState('Pending');
+  const [error, setError] = useState('');
+  const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     fetchJobDetails();
@@ -42,258 +44,295 @@ const JobDetail = () => {
 
   const fetchJobDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/jobs/${id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5000/api/jobs/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setJob(response.data);
     } catch (error) {
-      setError('Failed to fetch job details');
-      console.error('Error:', error);
+      console.error('Error fetching job details:', error);
+      setError(error.response?.data?.message || 'Failed to fetch job details');
     } finally {
       setLoading(false);
     }
   };
 
   const handleApply = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    setApplying(true);
     try {
+      const token = localStorage.getItem('token');
       await axios.post(
         `http://localhost:5000/api/jobs/${id}/apply`,
         {},
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          headers: { Authorization: `Bearer ${token}` }
         }
       );
-      setOpenApplicationDialog(false);
-      fetchJobDetails(); // Refresh job details to show updated applicants
+      // Refresh job details to update application status
+      fetchJobDetails();
     } catch (error) {
-      setError('Failed to apply for the job');
-      console.error('Error:', error);
+      console.error('Error applying for job:', error);
+      setError(error.response?.data?.message || 'Failed to apply for the job');
+    } finally {
+      setApplying(false);
     }
   };
 
   const handleUpdateApplicationStatus = async (applicationId, status) => {
     try {
+      const token = localStorage.getItem('token');
       await axios.patch(
         `http://localhost:5000/api/jobs/${id}/applications/${applicationId}`,
         { status },
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          headers: { Authorization: `Bearer ${token}` }
         }
       );
-      fetchJobDetails(); // Refresh job details
+      // Refresh job details to show updated status
+      fetchJobDetails();
     } catch (error) {
-      setError('Failed to update application status');
-      console.error('Error:', error);
+      console.error('Error updating application status:', error);
+      setError(error.response?.data?.message || 'Failed to update application status');
     }
+  };
+
+  const handleDeleteJob = async () => {
+    if (!window.confirm('Are you sure you want to delete this gig?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:5000/api/jobs/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      navigate('/jobs');
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      setError(error.response?.data?.message || 'Failed to delete the job');
+    }
+  };
+
+  const hasApplied = job?.applicants?.some(a => a.student === user?._id);
+  const applicationStatus = hasApplied 
+    ? job?.applicants?.find(a => a.student === user?._id)?.status 
+    : null;
+
+  const renderApplications = () => {
+    if (!job.applicants || job.applicants.length === 0) {
+      return (
+        <Typography color="text.secondary">
+          No applications yet.
+        </Typography>
+      );
+    }
+
+    return (
+      <Stack spacing={2}>
+        {job.applicants.map((application) => (
+          <Paper key={application._id} sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Box>
+                <Typography variant="subtitle1">
+                  {application.student.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {application.student.college}
+                </Typography>
+                <Chip
+                  label={application.status}
+                  color={
+                    application.status === 'Pending'
+                      ? 'warning'
+                      : application.status === 'Accepted'
+                      ? 'success'
+                      : 'error'
+                  }
+                  size="small"
+                  sx={{ mt: 1 }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => navigate(`/profile/${application.student._id}`)}
+                >
+                  View Profile
+                </Button>
+                {isRecruiter && application.status === 'Pending' && (
+                  <>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      size="small"
+                      onClick={() => handleUpdateApplicationStatus(application._id, 'Accepted')}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      onClick={() => handleUpdateApplicationStatus(application._id, 'Rejected')}
+                    >
+                      Reject
+                    </Button>
+                  </>
+                )}
+              </Box>
+            </Box>
+          </Paper>
+        ))}
+      </Stack>
+    );
   };
 
   if (loading) {
     return (
-      <Container>
-        <Typography>Loading...</Typography>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
       </Container>
     );
   }
 
   if (error) {
     return (
-      <Container>
-        <Typography color="error">{error}</Typography>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error">{error}</Alert>
       </Container>
     );
   }
 
   if (!job) {
     return (
-      <Container>
-        <Typography>Job not found</Typography>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error">Job not found</Alert>
       </Container>
     );
   }
 
-  const isEmployer = user && job.employer._id === user.id;
-  const hasApplied = job.applicants.some(
-    (applicant) => applicant.student._id === user?.id
-  );
-  const application = job.applicants.find(
-    (applicant) => applicant.student._id === user?.id
-  );
+  const isRecruiter = user && job.recruiter._id === user._id;
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Grid container spacing={3}>
-        {/* Job Details */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h4" component="h1">
-                {job.title}
-              </Typography>
-              <Chip
-                label={job.status}
-                color={
-                  job.status === 'Open'
-                    ? 'success'
-                    : job.status === 'In Progress'
-                    ? 'primary'
-                    : job.status === 'Completed'
-                    ? 'info'
-                    : 'error'
-                }
-              />
-            </Box>
-
-            <Typography variant="subtitle1" color="text.secondary" paragraph>
-              Posted by {job.employer.name} on{' '}
-              {new Date(job.createdAt).toLocaleDateString()}
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              {job.title}
             </Typography>
-
-            <Typography variant="h6" gutterBottom>
-              Description
+            <Typography variant="subtitle1" color="text.secondary">
+              Posted by{' '}
+              <Button
+                color="primary"
+                onClick={() => navigate(`/profile/${job.recruiter._id}`)}
+                sx={{ textTransform: 'none', p: 0, minWidth: 'auto' }}
+              >
+                {job.recruiter?.name}
+              </Button>
             </Typography>
-            <Typography paragraph>{job.description}</Typography>
-
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant="h6" gutterBottom>
-              Required Skills
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-              {job.requiredSkills.map((skill, index) => (
-                <Chip
-                  key={index}
-                  label={`${skill.name} (${skill.level})`}
-                  color="primary"
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Chip
+              label={job.status}
+              color={job.status === 'Open' ? 'success' : 'default'}
+              size="small"
+            />
+            {isRecruiter && (
+              <>
+                <Button
                   variant="outlined"
-                />
-              ))}
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-              <Typography variant="subtitle1">
-                Budget: <strong>${job.budget}</strong>
-              </Typography>
-              <Typography variant="subtitle1">
-                Duration: <strong>{job.duration}</strong>
-              </Typography>
-              <Typography variant="subtitle1">
-                Deadline:{' '}
-                <strong>
-                  {new Date(job.deadline).toLocaleDateString()}
-                </strong>
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Application Section */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            {isEmployer ? (
-              <>
-                <Typography variant="h6" gutterBottom>
-                  Applicants
-                </Typography>
-                <List>
-                  {job.applicants.map((applicant) => (
-                    <ListItem key={applicant.student._id}>
-                      <ListItemText
-                        primary={applicant.student.name}
-                        secondary={
-                          <>
-                            <Typography component="span" variant="body2">
-                              Applied: {new Date(applicant.appliedAt).toLocaleDateString()}
-                            </Typography>
-                            <br />
-                            <Typography component="span" variant="body2">
-                              Status: {applicant.status}
-                            </Typography>
-                          </>
-                        }
-                      />
-                      <ListItemSecondaryAction>
-                        <FormControl size="small">
-                          <Select
-                            value={applicant.status}
-                            onChange={(e) =>
-                              handleUpdateApplicationStatus(
-                                applicant._id,
-                                e.target.value
-                              )
-                            }
-                          >
-                            <MenuItem value="Pending">Pending</MenuItem>
-                            <MenuItem value="Accepted">Accept</MenuItem>
-                            <MenuItem value="Rejected">Reject</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </List>
-              </>
-            ) : (
-              <>
-                {hasApplied ? (
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      Application Status
-                    </Typography>
-                    <Typography
-                      color={
-                        application.status === 'Accepted'
-                          ? 'success.main'
-                          : application.status === 'Rejected'
-                          ? 'error.main'
-                          : 'primary.main'
-                      }
-                    >
-                      {application.status}
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      Apply for this Job
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      onClick={() => setOpenApplicationDialog(true)}
-                      disabled={!user || job.status !== 'Open'}
-                    >
-                      {!user
-                        ? 'Login to Apply'
-                        : job.status !== 'Open'
-                        ? 'Job Closed'
-                        : 'Apply Now'}
-                    </Button>
-                  </Box>
-                )}
+                  size="small"
+                  onClick={() => navigate(`/jobs/${id}/edit`)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  onClick={handleDeleteJob}
+                >
+                  Delete
+                </Button>
               </>
             )}
-          </Paper>
-        </Grid>
-      </Grid>
+          </Box>
+        </Box>
 
-      {/* Application Dialog */}
-      <Dialog
-        open={openApplicationDialog}
-        onClose={() => setOpenApplicationDialog(false)}
-      >
-        <DialogTitle>Apply for {job.title}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" paragraph>
-            Are you sure you want to apply for this job? Your profile will be
-            shared with the employer.
+        <Chip
+          label={job.category}
+          color="primary"
+          variant="outlined"
+          size="small"
+          sx={{ mb: 2 }}
+        />
+
+        <Typography variant="body1" paragraph>
+          {job.description}
+        </Typography>
+
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Required Skills
           </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenApplicationDialog(false)}>Cancel</Button>
-          <Button onClick={handleApply} variant="contained" color="primary">
-            Apply
-          </Button>
-        </DialogActions>
-      </Dialog>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {job.requiredSkills.map((skill, index) => (
+              <Chip
+                key={index}
+                label={`${skill.name} (${skill.level})`}
+                variant="outlined"
+              />
+            ))}
+          </Box>
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+          <Typography variant="body1">
+            <strong>Pay:</strong> ₹{job.pay ? job.pay.amount.toLocaleString() : 'Not specified'}
+            {job.pay?.type === 'hourly' ? '/hour' : ' (fixed)'}
+          </Typography>
+          <Typography variant="body1">
+            <strong>Duration:</strong> {job.duration} weeks
+          </Typography>
+          <Typography variant="body1">
+            <strong>Applications:</strong> {job.applicants?.length || 0}
+          </Typography>
+        </Box>
+
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Applications
+          </Typography>
+          {renderApplications()}
+        </Box>
+
+        {user?.role === 'student' && (
+          <Box sx={{ mt: 3 }}>
+            {hasApplied ? (
+              <Alert severity="info">
+                You have already applied for this position. Status: {applicationStatus}
+              </Alert>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleApply}
+                disabled={applying || job.status !== 'Open'}
+              >
+                {applying ? 'Applying...' : 'Apply Now'}
+              </Button>
+            )}
+          </Box>
+        )}
+      </Paper>
     </Container>
   );
 };

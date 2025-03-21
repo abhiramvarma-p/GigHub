@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }) => {
         const response = await axios.get('http://localhost:5000/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` }
         });
+        console.log('Auth check response:', response.data);
         setUser(response.data);
       }
     } catch (error) {
@@ -48,8 +49,7 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       return user;
     } catch (error) {
-      setError(error.response?.data?.message || 'Login failed');
-      throw error;
+      throw error.response?.data?.message || 'Login failed';
     }
   };
 
@@ -74,6 +74,7 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (profileData) => {
     try {
       const token = localStorage.getItem('token');
+      console.log('Updating profile with data:', profileData);
       const response = await axios.patch(
         'http://localhost:5000/api/users/profile',
         profileData,
@@ -81,10 +82,31 @@ export const AuthProvider = ({ children }) => {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
+      console.log('Profile update response:', response.data);
       setUser(response.data);
       return response.data;
     } catch (error) {
       setError(error.response?.data?.message || 'Profile update failed');
+      throw error;
+    }
+  };
+
+  const updateSkills = async (skills) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Updating skills with data:', skills);
+      const response = await axios.patch(
+        'http://localhost:5000/api/users/skills',
+        { skills },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      console.log('Skills update response:', response.data);
+      setUser(response.data);
+      return response.data;
+    } catch (error) {
+      setError(error.response?.data?.message || 'Skills update failed');
       throw error;
     }
   };
@@ -96,7 +118,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    updateProfile
+    updateProfile,
+    updateSkills
   };
 
   return (

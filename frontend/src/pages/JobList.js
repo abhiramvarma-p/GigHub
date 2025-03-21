@@ -25,7 +25,8 @@ const JobList = () => {
   const [filters, setFilters] = useState({
     status: 'Open',
     skills: '',
-    budget: 1000,
+    minSalary: 0,
+    maxSalary: 50000,
   });
   const navigate = useNavigate();
 
@@ -54,10 +55,10 @@ const JobList = () => {
     }));
   };
 
-  const handleBudgetChange = (event, newValue) => {
+  const handleSalaryChange = (event, newValue) => {
     setFilters((prev) => ({
       ...prev,
-      budget: newValue,
+      maxSalary: newValue,
     }));
   };
 
@@ -106,18 +107,18 @@ const JobList = () => {
               sx={{ mb: 2 }}
             />
 
-            <Typography gutterBottom>Budget Range</Typography>
+            <Typography gutterBottom>Salary Range</Typography>
             <Slider
-              value={filters.budget}
-              onChange={handleBudgetChange}
+              value={filters.maxSalary}
+              onChange={handleSalaryChange}
               min={0}
-              max={5000}
-              step={100}
+              max={50000}
+              step={1000}
               valueLabelDisplay="auto"
               sx={{ mb: 2 }}
             />
             <Typography variant="body2" color="text.secondary">
-              Max: ${filters.budget}
+              Max: ₹{filters.maxSalary.toLocaleString()}/month
             </Typography>
           </Paper>
         </Grid>
@@ -173,10 +174,10 @@ const JobList = () => {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Box>
                         <Typography variant="subtitle1" color="primary">
-                          Budget: ${job.budget}
+                          Salary: ₹{job.salary ? job.salary.toLocaleString() : 'Not specified'}/month
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Duration: {job.duration}
+                          Duration: {job.duration} weeks
                         </Typography>
                       </Box>
                       <Button

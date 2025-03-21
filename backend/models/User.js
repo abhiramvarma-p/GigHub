@@ -15,38 +15,82 @@ const userSchema = new mongoose.Schema({
     },
     name: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
-    college: {
+    role: {
         type: String,
-        required: true
+        required: true,
+        enum: ['student', 'recruiter'],
+        default: 'student'
     },
-    major: String,
-    graduationYear: Number,
-    bio: String,
+    profilePicture: {
+        type: String,
+        default: null
+    },
+    bio: {
+        type: String,
+        trim: true,
+        maxLength: 500
+    },
     skills: [{
+        id: Number,
         name: String,
         level: {
             type: String,
-            enum: ['Beginner', 'Intermediate', 'Advanced', 'Expert']
+            enum: ['beginner', 'intermediate', 'advanced', 'expert']
         },
-        subSkills: [String]
+        children: [{
+            id: Number,
+            name: String,
+            level: {
+                type: String,
+                enum: ['beginner', 'intermediate', 'advanced', 'expert']
+            }
+        }]
     }],
-    previousGigs: [{
+    experience: [{
         title: String,
-        description: String,
-        completedDate: Date,
-        employer: String,
-        rating: Number,
-        review: String
+        company: String,
+        location: String,
+        startDate: Date,
+        endDate: Date,
+        current: Boolean,
+        description: String
     }],
-    portfolio: [{
-        title: String,
-        description: String,
-        imageUrl: String,
-        projectUrl: String,
-        technologies: [String]
+    education: [{
+        school: String,
+        degree: String,
+        fieldOfStudy: String,
+        startDate: Date,
+        endDate: Date,
+        current: Boolean,
+        description: String
     }],
+    college: {
+        type: String,
+        required: function() { return this.role === 'student'; }
+    },
+    major: {
+        type: String,
+        required: function() { return this.role === 'student'; }
+    },
+    graduationYear: {
+        type: Number,
+        required: function() { return this.role === 'student'; }
+    },
+    company: {
+        type: String,
+        required: function() { return this.role === 'recruiter'; }
+    },
+    position: {
+        type: String,
+        required: function() { return this.role === 'recruiter'; }
+    },
+    companyWebsite: {
+        type: String,
+        required: function() { return this.role === 'recruiter'; }
+    },
     contactInfo: {
         phone: String,
         linkedin: String,
@@ -78,7 +122,11 @@ userSchema.pre('save', async function(next) {
 
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
-    return bcrypt.compare(candidatePassword, this.password);
+    try {
+        return await bcrypt.compare(candidatePassword, this.password);
+    } catch (error) {
+        throw error;
+    }
 };
 
 module.exports = mongoose.model('User', userSchema); 

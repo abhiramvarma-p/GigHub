@@ -1,22 +1,36 @@
-# Skill Marketplace
+# GigHub - Student Job Portal
 
-A web application that connects college students with job opportunities based on their skills. Built with the MERN stack (MongoDB, Express.js, React, Node.js).
+A full-stack web application that connects students with job opportunities from companies. Built with the MERN stack (MongoDB, Express.js, React, Node.js).
 
 ## Features
 
-- User authentication (register, login, profile management)
-- Interactive skill tree visualization
-- Job posting and application system
-- Real-time messaging between employers and students
-- Portfolio showcase
-- Review and rating system
+- **For Students:**
+  - Create and manage your profile
+  - Browse available jobs
+  - Apply to jobs
+  - Track application status
+  - Receive notifications for application updates
+
+- **For Recruiters:**
+  - Create and manage job postings
+  - View student applications
+  - Accept/reject applications
+  - Send notifications to applicants
+  - Track job performance
 
 ## Tech Stack
 
-- **Frontend**: React, Material-UI, React Router
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB
-- **Authentication**: JWT
+- **Frontend:**
+  - React.js
+  - Material-UI
+  - React Router
+  - Axios
+
+- **Backend:**
+  - Node.js
+  - Express.js
+  - MongoDB
+  - JWT Authentication
 
 ## Getting Started
 
@@ -29,46 +43,50 @@ A web application that connects college students with job opportunities based on
 ### Installation
 
 1. Clone the repository:
-   ```bash
-   git clone [your-repository-url]
-   cd skill-marketplace
-   ```
+```bash
+git clone https://github.com/yourusername/GigHub.git
+cd GigHub
+```
 
 2. Install backend dependencies:
-   ```bash
-   cd backend
-   npm install
-   ```
+```bash
+cd backend
+npm install
+```
 
 3. Install frontend dependencies:
-   ```bash
-   cd ../frontend
-   npm install
-   ```
+```bash
+cd ../frontend
+npm install
+```
 
-4. Create a .env file in the backend directory:
-   ```
-   PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/gighub
-   JWT_SECRET=your_jwt_secret_key_here
-   NODE_ENV=development
-   ```
+4. Create a `.env` file in the backend directory:
+```env
+MONGODB_URI=your_mongodb_uri
+JWT_SECRET=your_jwt_secret
+PORT=5000
+```
+
+5. Create a `.env` file in the frontend directory:
+```env
+REACT_APP_API_URL=http://localhost:5000/api
+```
 
 ### Running the Application
 
 1. Start the backend server:
-   ```bash
-   cd backend
-   npm start
-   ```
+```bash
+cd backend
+npm start
+```
 
-2. In a new terminal, start the frontend server:
-   ```bash
-   cd frontend
-   npm start
-   ```
+2. Start the frontend development server:
+```bash
+cd frontend
+npm start
+```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser.
+The application will be available at `http://localhost:3000`
 
 ## Project Structure
 

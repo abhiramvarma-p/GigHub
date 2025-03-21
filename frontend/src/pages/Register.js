@@ -8,172 +8,266 @@ import {
   Button,
   Box,
   Alert,
+  RadioGroup,
+  Radio,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
   Grid,
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 
 const Register = () => {
+  const navigate = useNavigate();
+  const { register } = useAuth();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState('student');
+
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    name: '',
+    // Student fields
     college: '',
     major: '',
     graduationYear: '',
+    // Recruiter fields
+    company: '',
+    position: '',
+    companyWebsite: '',
   });
-  const [error, setError] = useState('');
-  const { register } = useAuth();
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleRoleChange = (e) => {
+    setRole(e.target.value);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+      return setError('Passwords do not match');
     }
 
     try {
-      const { confirmPassword, ...registerData } = formData;
-      await register(registerData);
+      setError('');
+      setLoading(true);
+
+      const dataToSend = {
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        role: role
+      };
+
+      // Add role-specific fields
+      if (role === 'student') {
+        dataToSend.college = formData.college;
+        dataToSend.major = formData.major;
+        dataToSend.graduationYear = formData.graduationYear;
+      } else {
+        dataToSend.company = formData.company;
+        dataToSend.position = formData.position;
+        dataToSend.companyWebsite = formData.companyWebsite;
+      }
+
+      await register(dataToSend);
       navigate('/profile');
-    } catch (error) {
-      setError(error.message || 'Failed to register');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create an account');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ mt: 8 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom align="center">
-            Register
-          </Typography>
+    <Container maxWidth="sm" sx={{ mt: 4, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom align="center">
+          Create Account
+        </Typography>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Full Name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
+        <form onSubmit={handleSubmit}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <FormControl component="fieldset">
+                <FormLabel component="legend">Account Type</FormLabel>
+                <RadioGroup
+                  row
+                  name="role"
+                  value={role}
+                  onChange={handleRoleChange}
+                >
+                  <FormControlLabel
+                    value="student"
+                    control={<Radio />}
+                    label="Student"
+                  />
+                  <FormControlLabel
+                    value="recruiter"
+                    control={<Radio />}
+                    label="Recruiter"
+                  />
+                </RadioGroup>
+              </FormControl>
+            </Grid>
 
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
+            {/* Common Fields */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Full Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Email Address"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Confirm Password"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
+            {/* Student-specific fields */}
+            {role === 'student' && (
+              <>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="College/University"
+                    name="college"
+                    value={formData.college}
+                    onChange={handleChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Major"
+                    name="major"
+                    value={formData.major}
+                    onChange={handleChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Graduation Year"
+                    name="graduationYear"
+                    type="number"
+                    value={formData.graduationYear}
+                    onChange={handleChange}
+                    required
+                    InputProps={{ inputProps: { min: new Date().getFullYear() } }}
+                  />
+                </Grid>
+              </>
+            )}
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Confirm Password"
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
+            {/* Recruiter-specific fields */}
+            {role === 'recruiter' && (
+              <>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Company Name"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Position"
+                    name="position"
+                    value={formData.position}
+                    onChange={handleChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Company Website"
+                    name="companyWebsite"
+                    type="url"
+                    value={formData.companyWebsite}
+                    onChange={handleChange}
+                    required
+                  />
+                </Grid>
+              </>
+            )}
 
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="College"
-                  name="college"
-                  value={formData.college}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Major"
-                  name="major"
-                  value={formData.major}
-                  onChange={handleChange}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Graduation Year"
-                  name="graduationYear"
-                  type="number"
-                  value={formData.graduationYear}
-                  onChange={handleChange}
-                  inputProps={{ min: 2023, max: 2030 }}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => navigate('/login')}
+                >
+                  Already have an account?
+                </Button>
                 <Button
                   type="submit"
-                  fullWidth
                   variant="contained"
                   color="primary"
-                  size="large"
+                  disabled={loading}
                 >
                   Register
                 </Button>
-              </Grid>
+              </Box>
             </Grid>
-          </form>
-
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="body2">
-              Already have an account?{' '}
-              <Button
-                color="primary"
-                onClick={() => navigate('/login')}
-                sx={{ textTransform: 'none' }}
-              >
-                Login here
-              </Button>
-            </Typography>
-          </Box>
-        </Paper>
-      </Box>
+          </Grid>
+        </form>
+      </Paper>
     </Container>
   );
 };
