@@ -8,15 +8,21 @@ const notificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['application', 'application_deleted', 'application_accepted', 'application_rejected'],
+        enum: ['application', 'application_deleted', 'application_accepted', 'application_rejected', 'message'],
         required: true
     },
     job: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Job',
-        required: true
+        required: function() {
+            return this.type !== 'message';
+        }
     },
     message: {
+        type: String,
+        required: true
+    },
+    link: {
         type: String,
         required: true
     },

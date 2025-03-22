@@ -75,9 +75,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('token');
       console.log('Updating profile with data:', profileData);
+      
+      // Remove profilePicture from the update data if it's a URL
+      const updateData = { ...profileData };
+      if (updateData.profilePicture && updateData.profilePicture.startsWith('http')) {
+        delete updateData.profilePicture;
+      }
+
       const response = await axios.patch(
         'http://localhost:5000/api/users/profile',
-        profileData,
+        updateData,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -111,6 +118,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfilePicture = async (profilePictureUrl) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.patch(
+        'http://localhost:5000/api/users/profile',
+        { profilePicture: profilePictureUrl },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      setUser(response.data);
+      return response.data;
+    } catch (error) {
+      setError(error.response?.data?.message || 'Profile picture update failed');
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -119,7 +144,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
-    updateSkills
+    updateSkills,
+    updateProfilePicture
   };
 
   return (

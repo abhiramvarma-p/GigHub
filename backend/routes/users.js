@@ -86,7 +86,8 @@ router.patch('/profile', auth, async (req, res) => {
         'company',
         'position',
         'companyWebsite',
-        'contactInfo'
+        'contactInfo',
+        'profilePicture'
     ];
     const isValidOperation = updates.every(update => allowedUpdates.includes(update));
 
@@ -109,6 +110,7 @@ router.patch('/profile', auth, async (req, res) => {
         // Handle common fields
         if (req.body.name) req.user.name = req.body.name;
         if (req.body.bio) req.user.bio = req.body.bio;
+        if (req.body.profilePicture) req.user.profilePicture = req.body.profilePicture;
         if (req.body.contactInfo) {
             req.user.contactInfo = {
                 ...req.user.contactInfo,

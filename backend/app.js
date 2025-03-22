@@ -9,14 +9,22 @@ const app = express();
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads');
+const profilePicturesDir = path.join(uploadsDir, 'profile-pictures');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
+}
+if (!fs.existsSync(profilePicturesDir)) {
+  fs.mkdirSync(profilePicturesDir, { recursive: true });
 }
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    if (file.fieldname === 'profilePicture') {
+      cb(null, profilePicturesDir);
+    } else {
+      cb(null, uploadsDir);
+    }
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -41,14 +49,18 @@ const upload = multer({
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/users', require('./routes/users'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/jobs', require('./routes/jobs'));
-app.use('/api/messages', require('./routes/messages'));
-app.use('/api/ratings', require('./routes/ratings'));
+const userRoutes = require('./routes/users');
+const jobRoutes = require('./routes/jobs');
+const applicationRoutes = require('./routes/applications');
+const messageRoutes = require('./routes/messages');
+
+app.use('/api/users', userRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/applications', applicationRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

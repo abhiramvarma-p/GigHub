@@ -19,10 +19,13 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  jobId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Job',
+    required: false
   }
+}, {
+  timestamps: true
 });
 
 // Index for efficient querying of conversations

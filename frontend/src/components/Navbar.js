@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar,
   Box,
@@ -10,12 +10,14 @@ import {
   Menu,
   MenuItem,
   Container,
+  Badge,
 } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { styled } from '@mui/material/styles';
 import NotificationBell from './NotificationBell';
-import { AccountCircle } from '@mui/icons-material';
+import { AccountCircle, Mail as MailIcon } from '@mui/icons-material';
+import axios from 'axios';
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   background: 'rgba(18, 18, 18, 0.8)',
@@ -36,6 +38,27 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      fetchUnreadCount();
+    }
+  }, [user]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await axios.get('http://localhost:5000/api/notifications/unread/count', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUnreadCount(response.data.count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -88,6 +111,15 @@ const Navbar = () => {
                 {user.role === 'student' && (
                   <StyledButton onClick={() => navigate('/my-applications')}>My Applications</StyledButton>
                 )}
+                <IconButton
+                  color="inherit"
+                  onClick={() => navigate('/messages')}
+                  sx={{ ml: 2 }}
+                >
+                  <Badge badgeContent={unreadCount} color="error">
+                    <MailIcon />
+                  </Badge>
+                </IconButton>
                 <IconButton onClick={handleMenu} sx={{ p: 0 }}>
                   <Avatar
                     src={user.profilePicture}

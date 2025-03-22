@@ -28,7 +28,7 @@ import {
   Link,
   Alert,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Add, PhotoCamera, LinkedIn as LinkedInIcon, Work as WorkIcon, School as SchoolIcon, Business as BusinessIcon, Link as LinkIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Add, PhotoCamera, LinkedIn as LinkedInIcon, Work as WorkIcon, School as SchoolIcon, Business as BusinessIcon, Link as LinkIcon, Message as MessageIcon } from '@mui/icons-material';
 import Tree from 'react-d3-tree';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
@@ -70,7 +70,7 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 const Profile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser, updateProfile, updateSkills } = useAuth();
+  const { user: currentUser, updateProfile, updateSkills, updateProfilePicture } = useAuth();
   const [user, setUser] = useState(null);
   const [profileData, setProfileData] = useState({
     name: '',
@@ -218,16 +218,19 @@ const Profile = () => {
         }
       );
 
-      // Update the user's profile picture in the UI
-      setUser(prev => ({ ...prev, profilePicture: response.data.profilePicture }));
+      // Update the user's profile picture in the UI and AuthContext
+      const profilePictureUrl = `http://localhost:5000/${response.data.profilePicture}`;
       
-      // Update the profile picture in the AuthContext
+      // Update local state
+      setUser(prev => ({ ...prev, profilePicture: profilePictureUrl }));
+      
+      // Update AuthContext
       if (currentUser._id === user._id) {
-        updateProfile({ ...profileData, profilePicture: response.data.profilePicture });
+        await updateProfilePicture(profilePictureUrl);
       }
     } catch (error) {
       console.error('Error uploading profile picture:', error);
-      setError('Failed to upload profile picture');
+      setError(error.response?.data?.message || 'Failed to upload profile picture');
     } finally {
       setUploading(false);
     }
@@ -245,6 +248,18 @@ const Profile = () => {
     } catch (error) {
       console.error('Error updating skills:', error);
     }
+  };
+
+  const handleStartConversation = (recipient) => {
+    navigate('/messages', { 
+      state: { 
+        startConversation: true,
+        recipientId: recipient._id,
+        recipientName: recipient.name,
+        recipientPicture: recipient.profilePicture,
+        jobId: 'general' // Using a default jobId for general conversations
+      }
+    });
   };
 
   if (loading) {
@@ -334,6 +349,16 @@ const Profile = () => {
                 currentUser={user}
               />
             </Box>
+            {isOwnProfile && (
+              <Button
+                variant="contained"
+                startIcon={<MessageIcon />}
+                onClick={() => handleStartConversation(user)}
+                sx={{ mt: 2 }}
+              >
+                Message
+              </Button>
+            )}
           </Paper>
         </Grid>
 
@@ -498,6 +523,16 @@ const Profile = () => {
                 currentUser={user}
               />
             </Box>
+            {!isOwnProfile && (
+              <Button
+                variant="contained"
+                startIcon={<MessageIcon />}
+                onClick={() => handleStartConversation(user)}
+                sx={{ mt: 2 }}
+              >
+                Message
+              </Button>
+            )}
           </Paper>
         </Grid>
         <Grid item xs={12} md={8}>

@@ -70,14 +70,36 @@ const NotificationBell = () => {
   const handleNotificationClick = async (notification) => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // Mark notification as read
       await axios.patch(
         `http://localhost:5000/api/notifications/${notification._id}/read`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
       );
-      navigate(`/jobs/${notification.job._id}`);
-      handleClose();
-      fetchNotifications();
+
+      // Update notifications list
+      setNotifications(prevNotifications =>
+        prevNotifications.map(n =>
+          n._id === notification._id ? { ...n, read: true } : n
+        )
+      );
+
+      // Handle navigation based on notification type
+      if (notification.type === 'message') {
+        // For message notifications, navigate to the messages page with the conversation ID
+        const link = notification.link || `/messages/${notification.sender}/${notification.job || 'general'}`;
+        navigate(link);
+      } else {
+        // For other notification types, navigate to the appropriate page
+        navigate(notification.link);
+      }
+
+      // Close the notification menu
+      setAnchorEl(null);
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }

@@ -16,6 +16,7 @@ import EditJob from './pages/EditJob';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
 import Box from '@mui/material/Box';
+import Messages from './pages/Messages';
 
 // Protected Route wrapper for recruiter-only pages
 const RecruiterRoute = ({ children }) => {
@@ -99,6 +100,8 @@ function App() {
                 }
               />
               <Route path="/my-applications" element={<MyApplications />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/messages/:userId/:jobId" element={<Messages />} />
             </Routes>
           </Box>
         </Box>
