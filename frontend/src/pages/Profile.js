@@ -706,74 +706,20 @@ const Profile = () => {
           </Typography>
         </Paper>
 
-        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">
-              Skills
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setOpenSkillDialog(true);
-                setNewSkill({
-                  name: '',
-                  category: '',
-                  level: 'beginner'
-                });
-              }}
-            >
-              Add Skill
-            </Button>
+        <Paper elevation={3} sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Skills</Typography>
+            {isOwnProfile && (
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => setOpenSkillDialog(true)}
+              >
+                Add Skill
+              </Button>
+            )}
           </Box>
-          <Box sx={{ display: 'grid', gap: 3 }}>
-            {Object.entries(groupedSkills).map(([category, categorySkills]) => (
-              <Paper key={category} elevation={2} sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2, color: '#2c3e50' }}>
-                  {category}
-                </Typography>
-                <List>
-                  {categorySkills.map((skill, index) => (
-                    <React.Fragment key={skill._id}>
-                      <ListItem>
-                        <ListItemText
-                          primary={skill.name}
-                          secondary={
-                            <Chip
-                              label={getSkillLevelLabel(skill.level)}
-                              size="small"
-                              sx={{
-                                bgcolor: getSkillLevelColor(skill.level),
-                                color: 'white',
-                                mt: 1
-                              }}
-                            />
-                          }
-                        />
-                        <ListItemSecondaryAction>
-                          <IconButton
-                            edge="end"
-                            onClick={() => handleEditSkill(skill)}
-                            sx={{ mr: 1 }}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            edge="end"
-                            onClick={() => handleDeleteSkill(skill._id)}
-                            color="error"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                      {index < categorySkills.length - 1 && <Divider />}
-                    </React.Fragment>
-                  ))}
-                </List>
-              </Paper>
-            ))}
-          </Box>
+          <SkillTree skills={skills} onUpdateSkills={handleSaveSkills} />
         </Paper>
 
         <Paper elevation={3} sx={{ p: 3 }}>
