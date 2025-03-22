@@ -29,24 +29,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
+import { predefinedCategories } from '../data/predefinedCategories';
 
-const CATEGORIES = [
-  'Web Development',
-  'Game Development',
-  'App Development',
-  'Data Science & Analytics',
-  'UI/UX & Graphic Design',
-  'Software Engineering',
-  'Cybersecurity',
-  'Digital Marketing',
-  'Product Management',
-  'Quality Assurance & Testing',
-  'AI & Machine Learning',
-  'IoT & Embedded Systems',
-  'Blockchain',
-  'AR/VR Development',
-  'Networking & System Administration'
-];
+const CATEGORIES = predefinedCategories.map(category => category.name);
 
 const Jobs = () => {
   const navigate = useNavigate();

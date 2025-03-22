@@ -34,9 +34,11 @@ import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import SkillTree from '../components/SkillTree';
 import EditProfileDialog from '../components/EditProfileDialog';
-import ManageSkillsDialog from '../components/ManageSkillsDialog';
+import ManageSkillsDialog from '../components/ManageSkillsDialog.jsx';
 import { styled } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router-dom';
+import SkillsVisualization from '../components/SkillsVisualization';
+import RatingComponent from '../components/Rating';
 
 const ProfileAvatar = styled(Avatar)(({ theme }) => ({
   width: 150,
@@ -108,6 +110,7 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef();
   const [isEditing, setIsEditing] = useState(false);
+  const [manageSkillsOpen, setManageSkillsOpen] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
@@ -194,6 +197,56 @@ const Profile = () => {
 
   const isOwnProfile = !id || id === currentUser?._id;
 
+  const handleProfilePictureUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'http://localhost:5000/api/users/profile-picture',
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      // Update the user's profile picture in the UI
+      setUser(prev => ({ ...prev, profilePicture: response.data.profilePicture }));
+      
+      // Update the profile picture in the AuthContext
+      if (currentUser._id === user._id) {
+        updateProfile({ ...profileData, profilePicture: response.data.profilePicture });
+      }
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      setError('Failed to upload profile picture');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleManageSkills = () => {
+    setManageSkillsOpen(true);
+  };
+
+  const handleSaveSkills = async (updatedSkills) => {
+    try {
+      await updateSkills(updatedSkills);
+      setSkills(updatedSkills);
+      setManageSkillsOpen(false);
+    } catch (error) {
+      console.error('Error updating skills:', error);
+    }
+  };
+
   if (loading) {
     return (
       <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
@@ -223,10 +276,37 @@ const Profile = () => {
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
-            <Avatar
-              src={user?.profilePicture}
-              sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
-            />
+            <Box sx={{ position: 'relative', display: 'inline-block' }}>
+              <Avatar
+                src={user?.profilePicture}
+                sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
+              />
+              {isOwnProfile && (
+                <IconButton
+                  component="label"
+                  sx={{
+                    position: 'absolute',
+                    bottom: 8,
+                    right: 8,
+                    bgcolor: 'background.paper',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                  disabled={uploading}
+                >
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={handleProfilePictureUpload}
+                  />
+                  {uploading ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    <PhotoCamera />
+                  )}
+                </IconButton>
+              )}
+            </Box>
             <Typography variant="h5" gutterBottom>
               {profileData.name}
             </Typography>
@@ -247,6 +327,13 @@ const Profile = () => {
                 Company Website
               </Link>
             )}
+            <Box sx={{ mt: 3 }}>
+              <RatingComponent
+                userId={user._id}
+                userRole="recruiter"
+                currentUser={user}
+              />
+            </Box>
           </Paper>
         </Grid>
 
@@ -353,143 +440,141 @@ const Profile = () => {
     <>
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center' }}>
-            <Avatar
-              src={user?.profilePicture}
-              sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
-            />
-            <Typography variant="h5" gutterBottom>
-              {profileData.name}
-            </Typography>
-            <Typography color="text.secondary" gutterBottom>
-              {profileData.major}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {profileData.college}
-            </Typography>
-            {profileData.graduationYear && (
-              <Typography variant="body2" color="text.secondary">
-                Graduation Year: {profileData.graduationYear}
-              </Typography>
-            )}
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">About</Typography>
+          <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+            <Box sx={{ position: 'relative', display: 'inline-block' }}>
+              <Avatar
+                src={user?.profilePicture}
+                sx={{ width: 120, height: 120, margin: '0 auto 16px' }}
+              />
               {isOwnProfile && (
-                <IconButton onClick={() => setIsEditing(true)}>
-                  <EditIcon />
+                <IconButton
+                  component="label"
+                  sx={{
+                    position: 'absolute',
+                    bottom: 8,
+                    right: 8,
+                    bgcolor: 'background.paper',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                  disabled={uploading}
+                >
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={handleProfilePictureUpload}
+                  />
+                  {uploading ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    <PhotoCamera />
+                  )}
                 </IconButton>
               )}
             </Box>
-            <Typography variant="body1" color="text.secondary">
-              {profileData.bio || 'No bio added yet.'}
+            <Typography variant="h5" gutterBottom>
+              {profileData.name}
+            </Typography>
+            <Typography color="textSecondary" gutterBottom>
+              {profileData.college}
+            </Typography>
+            <Typography color="textSecondary" gutterBottom>
+              {profileData.major} • Class of {profileData.graduationYear}
+            </Typography>
+            {isOwnProfile && (
+              <Button
+                variant="outlined"
+                startIcon={<EditIcon />}
+                onClick={() => setIsEditing(true)}
+                sx={{ mt: 2 }}
+              >
+                Edit Profile
+              </Button>
+            )}
+            <Box sx={{ mt: 3 }}>
+              <RatingComponent
+                userId={user._id}
+                userRole="student"
+                currentUser={user}
+              />
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={8}>
+          <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              About Me
+            </Typography>
+            <Typography paragraph>
+              {profileData.bio || 'No bio available'}
             </Typography>
           </Paper>
 
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Skills</Typography>
+          <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">
+                Skills
+              </Typography>
               {isOwnProfile && (
                 <Button
-                  startIcon={<EditIcon />}
-                  onClick={() => setOpenSkillsDialog(true)}
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={handleManageSkills}
                 >
-                  Edit Skills
+                  Manage Skills
                 </Button>
               )}
             </Box>
-            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-              {skills.map((skill) => (
-                <Chip
-                  key={skill.id}
-                  label={`${skill.name} (${skill.level})`}
-                  color="primary"
-                  variant="outlined"
-                />
-              ))}
-            </Stack>
+            <SkillsVisualization skills={skills} />
           </Paper>
 
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Portfolio</Typography>
+          <Paper elevation={3} sx={{ p: 3 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">
+                Portfolio
+              </Typography>
               {isOwnProfile && (
-                <Button
-                  startIcon={<EditIcon />}
-                  onClick={() => setOpenPortfolioDialog(true)}
-                >
-                  Edit Portfolio
-                </Button>
+                <IconButton onClick={() => setOpenPortfolioDialog(true)}>
+                  <AddIcon />
+                </IconButton>
               )}
             </Box>
             <Grid container spacing={2}>
               {portfolio.map((item, index) => (
                 <Grid item xs={12} sm={6} key={index}>
-                  <Paper sx={{ p: 2 }}>
+                  <Paper elevation={2} sx={{ p: 2 }}>
                     <Typography variant="subtitle1" gutterBottom>
                       {item.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
+                    <Typography variant="body2" color="textSecondary" paragraph>
                       {item.description}
                     </Typography>
                     {item.projectUrl && (
-                      <Link
+                      <Button
+                        variant="outlined"
+                        size="small"
                         href={item.projectUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        sx={{ display: 'inline-flex', alignItems: 'center' }}
                       >
-                        <LinkIcon sx={{ mr: 0.5 }} />
                         View Project
-                      </Link>
+                      </Button>
+                    )}
+                    {isOwnProfile && (
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          // Implement delete logic here
+                        }}
+                        sx={{ ml: 1 }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
                     )}
                   </Paper>
                 </Grid>
               ))}
             </Grid>
-          </Paper>
-
-          <Paper sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Contact Information</Typography>
-            </Box>
-            <Stack spacing={2}>
-              {profileData.contactInfo?.linkedin && (
-                <Link
-                  href={profileData.contactInfo.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ display: 'inline-flex', alignItems: 'center' }}
-                >
-                  <LinkedInIcon sx={{ mr: 1 }} />
-                  LinkedIn Profile
-                </Link>
-              )}
-              {profileData.contactInfo?.github && (
-                <Link
-                  href={profileData.contactInfo.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ display: 'inline-flex', alignItems: 'center' }}
-                >
-                  <LinkIcon sx={{ mr: 1 }} />
-                  GitHub Profile
-                </Link>
-              )}
-              {profileData.contactInfo?.website && (
-                <Link
-                  href={profileData.contactInfo.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Personal Website
-                </Link>
-              )}
-            </Stack>
           </Paper>
         </Grid>
       </Grid>
@@ -614,47 +699,9 @@ const Profile = () => {
 
       {/* Manage Skills Dialog */}
       <ManageSkillsDialog
-        open={openSkillsDialog}
-        onClose={() => setOpenSkillsDialog(false)}
-        onSave={async (updatedSkills) => {
-          try {
-            console.log('Saving updated skills:', updatedSkills);
-            
-            // Ensure skills have proper structure
-            const processedSkills = updatedSkills.map(skill => ({
-              id: skill.id || Date.now(),
-              name: skill.name,
-              level: skill.level.toLowerCase(),
-              children: (skill.children || []).map(child => ({
-                id: child.id || Date.now() + 1,
-                name: child.name,
-                level: child.level.toLowerCase()
-              }))
-            }));
-
-            // Update skills directly through the skills endpoint
-            const response = await axios.patch(
-              'http://localhost:5000/api/users/skills',
-              { skills: processedSkills },
-              {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-              }
-            );
-
-            // Update local state with the processed skills
-            setSkills(processedSkills);
-            
-            // Update the user context with the fresh data
-            updateProfile(response.data);
-            
-            console.log('Skills saved and state updated:', processedSkills);
-          } catch (error) {
-            console.error('Error updating skills:', error);
-            if (error.response) {
-              console.error('Error response:', error.response.data);
-            }
-          }
-        }}
+        open={manageSkillsOpen}
+        onClose={() => setManageSkillsOpen(false)}
+        onSave={handleSaveSkills}
         currentSkills={skills}
       />
 

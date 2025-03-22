@@ -212,28 +212,13 @@ router.post('/profile-picture', auth, upload.single('profilePicture'), async (re
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Delete old profile picture if it exists
-    if (user.profilePicture) {
-      const oldPicturePath = path.join(__dirname, '..', user.profilePicture);
-      if (fs.existsSync(oldPicturePath)) {
-        fs.unlinkSync(oldPicturePath);
-      }
-    }
-
     // Update user's profile picture URL
-    const imageUrl = `/uploads/profile-pictures/${req.file.filename}`;
-    user.profilePicture = imageUrl;
-    await user.save();
+    req.user.profilePicture = req.file.path;
+    await req.user.save();
 
-    res.json({ imageUrl });
+    res.json({ profilePicture: req.file.path });
   } catch (error) {
-    console.error('Error uploading profile picture:', error);
-    res.status(500).json({ message: 'Error uploading profile picture' });
+    res.status(500).json({ message: error.message });
   }
 });
 

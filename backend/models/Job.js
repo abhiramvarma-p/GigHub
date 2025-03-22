@@ -5,13 +5,8 @@ const jobSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    description: {
+    company: {
         type: String,
-        required: true
-    },
-    recruiter: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
         required: true
     },
     category: {
@@ -25,15 +20,65 @@ const jobSchema = new mongoose.Schema({
             'UI/UX & Graphic Design',
             'Software Engineering',
             'Cybersecurity',
+            'Cloud Computing & DevOps',
             'Digital Marketing',
+            'Content Creation',
             'Product Management',
             'Quality Assurance & Testing',
+            'Business Analysis',
+            'Customer & Technical Support',
+            'E-commerce & Retail Tech',
             'AI & Machine Learning',
             'IoT & Embedded Systems',
-            'Blockchain',
+            'Blockchain & Cryptocurrency',
             'AR/VR Development',
             'Networking & System Administration'
         ]
+    },
+    description: {
+        type: String,
+        required: true
+    },
+    requirements: {
+        type: [String],
+        required: true,
+    },
+    location: {
+        type: String,
+        required: true,
+    },
+    salary: {
+        type: String,
+        required: true,
+    },
+    type: {
+        type: String,
+        required: true,
+        enum: ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship']
+    },
+    experience: {
+        type: String,
+        required: true,
+        enum: ['Entry Level', 'Junior', 'Mid Level', 'Senior', 'Lead', 'Manager']
+    },
+    postedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    postedDate: {
+        type: Date,
+        default: Date.now
+    },
+    status: {
+        type: String,
+        enum: ['Open', 'Closed', 'Draft'],
+        default: 'Open'
+    },
+    recruiter: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
     },
     requiredSkills: [{
         name: {
@@ -61,11 +106,6 @@ const jobSchema = new mongoose.Schema({
         type: Number,
         required: true,
         min: 1
-    },
-    status: {
-        type: String,
-        enum: ['Open', 'In Progress', 'Completed', 'Cancelled'],
-        default: 'Open'
     },
     applicants: [{
         student: {
