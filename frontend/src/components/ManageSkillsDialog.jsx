@@ -65,7 +65,7 @@ const ManageSkillsDialog = ({ open, onClose, onSave }) => {
     } else {
       const timer = setTimeout(() => {
         setMounted(false);
-      }, 300); // delay to match the fade out animation
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [open]);
@@ -224,24 +224,51 @@ const ManageSkillsDialog = ({ open, onClose, onSave }) => {
               {hasSkills && (selectedSubSubcategory || (!hasSubSubcategories && selectedSubcategory)) && (
                 <StyledPaper elevation={0}>
                   <Typography variant="subtitle1" gutterBottom>
-                    Select Skills
+                    Select Skills ({selectedSkills.length} selected)
                   </Typography>
-                  <List sx={{ maxHeight: 300, overflow: 'auto', pt: 0 }}>
+                  <List sx={{ 
+                    maxHeight: 400, 
+                    overflow: 'auto', 
+                    pt: 0,
+                    '& .MuiListItem-root': {
+                      py: 1,
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      }
+                    }
+                  }}>
                     {availableSkills.map((skill) => (
                       <ListItem
                         key={skill.id}
                         dense
                         button
                         onClick={() => handleSkillToggle(skill.id)}
-                        sx={{ py: 0.5 }}
+                        sx={{ 
+                          py: 1,
+                          borderRadius: 1,
+                          mb: 0.5
+                        }}
                       >
                         <Checkbox
                           edge="start"
                           checked={selectedSkills.includes(skill.id)}
                           tabIndex={-1}
                           disableRipple
+                          sx={{
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            '&.Mui-checked': {
+                              color: 'primary.main',
+                            },
+                          }}
                         />
-                        <ListItemText primary={skill.name} />
+                        <ListItemText 
+                          primary={skill.name}
+                          sx={{
+                            '& .MuiListItemText-primary': {
+                              fontSize: '0.95rem',
+                            }
+                          }}
+                        />
                       </ListItem>
                     ))}
                   </List>
@@ -251,7 +278,14 @@ const ManageSkillsDialog = ({ open, onClose, onSave }) => {
           </Box>
 
           {/* Actions */}
-          <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Box sx={{ 
+            p: 2, 
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)', 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            gap: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.2)'
+          }}>
             <Button onClick={handleClose}>CANCEL</Button>
             <Button 
               variant="contained" 
@@ -263,7 +297,7 @@ const ManageSkillsDialog = ({ open, onClose, onSave }) => {
                 (hasSkills && selectedSkills.length === 0)
               }
             >
-              SAVE
+              SAVE ({selectedSkills.length} skills)
             </Button>
           </Box>
         </ModalContent>

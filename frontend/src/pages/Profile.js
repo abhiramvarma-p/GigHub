@@ -30,7 +30,7 @@ import {
   MenuItem,
   Rating,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Add, PhotoCamera, LinkedIn as LinkedInIcon, Work as WorkIcon, School as SchoolIcon, Business as BusinessIcon, Link as LinkIcon, Message as MessageIcon, Star as StarIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Add, PhotoCamera, LinkedIn as LinkedInIcon, Work as WorkIcon, School as SchoolIcon, Business as BusinessIcon, Link as LinkIcon, Message as MessageIcon, Star as StarIcon, Upload as UploadIcon, Download as DownloadIcon } from '@mui/icons-material';
 import Tree from 'react-d3-tree';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
@@ -383,6 +383,41 @@ const Profile = () => {
       setReviewError(error.response?.data?.message || 'Failed to submit review. Please try again.');
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const handleResumeUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('resume', file);
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'http://localhost:5000/api/users/resume',
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      // Show success message
+      setError('');
+      alert(`Resume uploaded successfully! ${response.data.newSkillsAdded} new skills added to your profile.`);
+      
+      // Refresh the profile data
+      fetchUserProfile();
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      setError(error.response?.data?.message || 'Failed to upload resume');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -769,6 +804,67 @@ const Profile = () => {
               </Grid>
             ))}
           </Grid>
+        </Paper>
+
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Resume</Typography>
+            {isOwnProfile && (
+              <Button
+                variant="outlined"
+                startIcon={<UploadIcon />}
+                component="label"
+                disabled={uploading}
+              >
+                {uploading ? 'Uploading...' : 'Upload Resume'}
+                <input
+                  type="file"
+                  hidden
+                  accept=".pdf"
+                  onChange={handleResumeUpload}
+                />
+              </Button>
+            )}
+          </Box>
+          
+          {user.resume?.file ? (
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Last updated: {new Date(user.resume.lastUpdated).toLocaleDateString()}
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Extracted Skills:
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {user.resume.parsedSkills.map((skill, index) => (
+                    <Chip
+                      key={index}
+                      label={skill}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
+                </Box>
+              </Box>
+              <Box sx={{ mt: 2 }}>
+                <Button
+                  variant="text"
+                  size="small"
+                  startIcon={<DownloadIcon />}
+                  href={`http://localhost:5000/${user.resume.file}`}
+                  target="_blank"
+                >
+                  View Resume
+                </Button>
+              </Box>
+            </Box>
+          ) : (
+            <Typography color="text.secondary">
+              No resume uploaded yet.
+            </Typography>
+          )}
         </Paper>
       </Grid>
     </Grid>

@@ -83,15 +83,25 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: function() { return this.role === 'recruiter'; }
     },
+    resume: {
+        file: {
+            type: String,  // Path to the stored resume file
+            default: null
+        },
+        lastUpdated: {
+            type: Date,
+            default: null
+        },
+        parsedSkills: [{
+            type: String,
+            trim: true
+        }]
+    },
     contactInfo: {
         phone: String,
         linkedin: String,
         github: String,
         website: String
-    },
-    resume: {
-        url: String,
-        skills: [String] // Extracted skills from resume (placeholder for future enhancement)
     },
     createdAt: {
         type: Date,
