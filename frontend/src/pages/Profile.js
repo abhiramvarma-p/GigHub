@@ -27,8 +27,10 @@ import {
   Stack,
   Link,
   Alert,
+  MenuItem,
+  Rating,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Add, PhotoCamera, LinkedIn as LinkedInIcon, Work as WorkIcon, School as SchoolIcon, Business as BusinessIcon, Link as LinkIcon, Message as MessageIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Add, PhotoCamera, LinkedIn as LinkedInIcon, Work as WorkIcon, School as SchoolIcon, Business as BusinessIcon, Link as LinkIcon, Message as MessageIcon, Star as StarIcon } from '@mui/icons-material';
 import Tree from 'react-d3-tree';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
@@ -39,6 +41,7 @@ import { styled } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router-dom';
 import SkillsVisualization from '../components/SkillsVisualization';
 import RatingComponent from '../components/Rating';
+import { skillCategories } from '../constants/skills';
 
 const ProfileAvatar = styled(Avatar)(({ theme }) => ({
   width: 150,
@@ -96,7 +99,11 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [openSkillDialog, setOpenSkillDialog] = useState(false);
   const [openPortfolioDialog, setOpenPortfolioDialog] = useState(false);
-  const [newSkill, setNewSkill] = useState({ name: '', level: 'Beginner', subSkills: [] });
+  const [newSkill, setNewSkill] = useState({
+    name: '',
+    category: '',
+    level: 'beginner'
+  });
   const [newPortfolioItem, setNewPortfolioItem] = useState({
     title: '',
     description: '',
@@ -111,6 +118,21 @@ const Profile = () => {
   const fileInputRef = useRef();
   const [isEditing, setIsEditing] = useState(false);
   const [manageSkillsOpen, setManageSkillsOpen] = useState(false);
+  const [openReviewDialog, setOpenReviewDialog] = useState(false);
+  const [newReview, setNewReview] = useState({
+    rating: 0,
+    comment: '',
+  });
+  const [reviewError, setReviewError] = useState(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const groupedSkills = skills.reduce((acc, skill) => {
+    if (!acc[skill.category]) {
+      acc[skill.category] = [];
+    }
+    acc[skill.category].push(skill);
+    return acc;
+  }, {});
 
   useEffect(() => {
     fetchUserProfile();
@@ -152,14 +174,10 @@ const Profile = () => {
       
       // Ensure skills have proper structure when setting from user data
       const processedSkills = (userData.skills || []).map(skill => ({
-        id: skill.id || Date.now(),
+        _id: skill._id || Date.now().toString(),
         name: skill.name,
-        level: skill.level?.toLowerCase() || 'beginner',
-        children: (skill.children || []).map(child => ({
-          id: child.id || Date.now() + 1,
-          name: child.name,
-          level: child.level?.toLowerCase() || 'beginner'
-        })) || []
+        category: skill.category,
+        level: skill.level?.toLowerCase() || 'beginner'
       }));
       
       setSkills(processedSkills);
@@ -240,6 +258,21 @@ const Profile = () => {
     setManageSkillsOpen(true);
   };
 
+  const handleDelete = async (skillId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:5000/api/users/skills/${skillId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Update local state
+      setSkills(prevSkills => prevSkills.filter(skill => skill._id !== skillId));
+    } catch (error) {
+      console.error('Error deleting skill:', error);
+      setError(error.response?.data?.message || 'Failed to delete skill');
+    }
+  };
+
   const handleSaveSkills = async (updatedSkills) => {
     try {
       await updateSkills(updatedSkills);
@@ -250,16 +283,107 @@ const Profile = () => {
     }
   };
 
-  const handleStartConversation = (recipient) => {
-    navigate('/messages', { 
-      state: { 
-        startConversation: true,
-        recipientId: recipient._id,
-        recipientName: recipient.name,
-        recipientPicture: recipient.profilePicture,
-        jobId: 'general' // Using a default jobId for general conversations
-      }
+  const handleStartConversation = (user) => {
+    navigate(`/messages/${user._id}`);
+  };
+
+  const handleAddSkill = async () => {
+    if (!newSkill.name || !newSkill.category || !newSkill.level) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    try {
+      setError(null); // Clear any previous errors
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'http://localhost:5000/api/users/skills',
+        newSkill,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // Update local state with the new skill from the response
+      setSkills(prevSkills => [...prevSkills, response.data]);
+      setOpenSkillDialog(false);
+      setNewSkill({
+        name: '',
+        category: '',
+        level: 'beginner'
+      });
+    } catch (error) {
+      console.error('Error adding skill:', error);
+      setError(error.response?.data?.message || 'Failed to add skill. Please try again.');
+    }
+  };
+
+  const handleEditSkill = (skill) => {
+    setNewSkill({
+      name: skill.name,
+      category: skill.category,
+      level: skill.level
     });
+    setOpenSkillDialog(true);
+  };
+
+  const handleDeleteSkill = (skillId) => {
+    const updatedSkills = skills.filter(skill => skill._id !== skillId);
+    setSkills(updatedSkills);
+    handleSaveSkills(updatedSkills);
+  };
+
+  const getSkillLevelColor = (level) => {
+    switch (level) {
+      case 'beginner': return '#3498db';
+      case 'intermediate': return '#2ecc71';
+      case 'advanced': return '#f1c40f';
+      case 'expert': return '#e74c3c';
+      default: return '#95a5a6';
+    }
+  };
+
+  const getSkillLevelLabel = (level) => {
+    switch (level) {
+      case 'beginner': return 'Beginner';
+      case 'intermediate': return 'Intermediate';
+      case 'advanced': return 'Advanced';
+      case 'expert': return 'Expert';
+      default: return 'Beginner';
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    try {
+      setSubmittingReview(true);
+      setReviewError(null);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setReviewError('Please log in to submit a review');
+        return;
+      }
+
+      await axios.post(
+        'http://localhost:5000/api/ratings',
+        {
+          ratedUser: user._id,
+          rating: newReview.rating,
+          comment: newReview.comment,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setOpenReviewDialog(false);
+      setNewReview({ rating: 0, comment: '' });
+      // Refresh the page to show the new review
+      window.location.reload();
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      setReviewError(error.response?.data?.message || 'Failed to submit review. Please try again.');
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   if (loading) {
@@ -287,333 +411,421 @@ const Profile = () => {
   }
 
   const renderRecruiterProfile = () => (
-    <>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center' }}>
-            <Box sx={{ position: 'relative', display: 'inline-block' }}>
-              <Avatar
-                src={user?.profilePicture}
-                sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
-              />
-              {isOwnProfile && (
-                <IconButton
-                  component="label"
-                  sx={{
-                    position: 'absolute',
-                    bottom: 8,
-                    right: 8,
-                    bgcolor: 'background.paper',
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}
-                  disabled={uploading}
-                >
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={handleProfilePictureUpload}
-                  />
-                  {uploading ? (
-                    <CircularProgress size={24} />
-                  ) : (
-                    <PhotoCamera />
-                  )}
-                </IconButton>
-              )}
-            </Box>
-            <Typography variant="h5" gutterBottom>
-              {profileData.name}
-            </Typography>
-            <Typography color="text.secondary" gutterBottom>
-              {profileData.position}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {profileData.company}
-            </Typography>
-            {profileData.companyWebsite && (
-              <Link
-                href={profileData.companyWebsite}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ display: 'inline-flex', alignItems: 'center', mt: 1 }}
-              >
-                <LinkIcon sx={{ mr: 0.5 }} />
-                Company Website
-              </Link>
-            )}
-            <Box sx={{ mt: 3 }}>
-              <RatingComponent
-                userId={user._id}
-                userRole="recruiter"
-                currentUser={user}
-              />
-            </Box>
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={4}>
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <Box sx={{ position: 'relative', display: 'inline-block' }}>
+            <Avatar
+              src={user?.profilePicture}
+              sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
+            />
             {isOwnProfile && (
+              <IconButton
+                component="label"
+                sx={{
+                  position: 'absolute',
+                  bottom: 8,
+                  right: 8,
+                  bgcolor: 'background.paper',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+                disabled={uploading}
+              >
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleProfilePictureUpload}
+                />
+                {uploading ? (
+                  <CircularProgress size={24} />
+                ) : (
+                  <PhotoCamera />
+                )}
+              </IconButton>
+            )}
+          </Box>
+          <Typography variant="h5" gutterBottom>
+            {profileData.name}
+          </Typography>
+          <Typography color="text.secondary" gutterBottom>
+            {profileData.position}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {profileData.company}
+          </Typography>
+          {profileData.companyWebsite && (
+            <Link
+              href={profileData.companyWebsite}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ display: 'inline-flex', alignItems: 'center', mt: 1 }}
+            >
+              <LinkIcon sx={{ mr: 0.5 }} />
+              Company Website
+            </Link>
+          )}
+          <Box sx={{ mt: 3 }}>
+            <RatingComponent
+              userId={user._id}
+              userRole="recruiter"
+              currentUser={user}
+            />
+          </Box>
+          {currentUser && currentUser._id !== user._id && (
+            <Stack direction="row" spacing={2} sx={{ mt: 2, justifyContent: 'center' }}>
               <Button
-                variant="contained"
+                variant="outlined"
                 startIcon={<MessageIcon />}
-                onClick={() => handleStartConversation(user)}
-                sx={{ mt: 2 }}
+                onClick={() => navigate(`/messages/${user._id}`)}
               >
                 Message
               </Button>
+              <Button
+                variant="outlined"
+                startIcon={<StarIcon />}
+                onClick={() => setOpenReviewDialog(true)}
+              >
+                Write Review
+              </Button>
+            </Stack>
+          )}
+        </Paper>
+      </Grid>
+
+      <Grid item xs={12} md={8}>
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">About</Typography>
+            {isOwnProfile && (
+              <IconButton onClick={() => setIsEditing(true)}>
+                <EditIcon />
+              </IconButton>
             )}
-          </Paper>
-        </Grid>
+          </Box>
+          <Typography variant="body1" color="text.secondary">
+            {profileData.bio || 'No bio added yet.'}
+          </Typography>
+        </Paper>
 
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">About</Typography>
-              {isOwnProfile && (
-                <IconButton onClick={() => setIsEditing(true)}>
-                  <EditIcon />
-                </IconButton>
-              )}
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Active Gigs</Typography>
+          </Box>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
             </Box>
-            <Typography variant="body1" color="text.secondary">
-              {profileData.bio || 'No bio added yet.'}
-            </Typography>
-          </Paper>
-
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Active Gigs</Typography>
-            </Box>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                <CircularProgress />
-              </Box>
-            ) : error ? (
-              <Typography color="error">{error}</Typography>
-            ) : activeGigs.length > 0 ? (
-              <Stack spacing={2}>
-                {activeGigs.map((gig) => (
-                  <Paper key={gig._id} sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <Box>
-                        <Typography variant="subtitle1" gutterBottom>
-                          {gig.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" paragraph>
-                          {gig.description}
-                        </Typography>
-                        <Stack direction="row" spacing={1}>
-                          <Chip label={gig.status} color={gig.status === 'Open' ? 'success' : 'default'} size="small" />
-                          <Chip label={`${gig.applicants?.length || 0} applications`} size="small" />
-                        </Stack>
-                      </Box>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => navigate(`/jobs/${gig._id}`)}
-                      >
-                        View Details
-                      </Button>
+          ) : error ? (
+            <Typography color="error">{error}</Typography>
+          ) : activeGigs.length > 0 ? (
+            <Stack spacing={2}>
+              {activeGigs.map((gig) => (
+                <Paper key={gig._id} sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box>
+                      <Typography variant="subtitle1" gutterBottom>
+                        {gig.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" paragraph>
+                        {gig.description}
+                      </Typography>
+                      <Stack direction="row" spacing={1}>
+                        <Chip label={gig.status} color={gig.status === 'Open' ? 'success' : 'default'} size="small" />
+                        <Chip label={`${gig.applicants?.length || 0} applications`} size="small" />
+                      </Stack>
                     </Box>
-                  </Paper>
-                ))}
-              </Stack>
-            ) : (
-              <Typography color="text.secondary">
-                {isOwnProfile 
-                  ? "No active gigs. Create your first gig to start hiring!"
-                  : "No active gigs at the moment."}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => navigate(`/jobs/${gig._id}`)}
+                    >
+                      View Details
+                    </Button>
+                  </Box>
+                </Paper>
+              ))}
+            </Stack>
+          ) : (
+            <Typography color="text.secondary">
+              {isOwnProfile 
+                ? "No active gigs. Create your first gig to start hiring!"
+                : "No active gigs at the moment."}
+            </Typography>
+          )}
+        </Paper>
+
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Contact Information</Typography>
+          </Box>
+          <Stack spacing={2}>
+            {profileData.contactInfo?.linkedin && (
+              <Link
+                href={profileData.contactInfo.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ display: 'inline-flex', alignItems: 'center' }}
+              >
+                <LinkedInIcon sx={{ mr: 1 }} />
+                LinkedIn Profile
+              </Link>
+            )}
+            {profileData.contactInfo?.phone && (
+              <Typography>
+                <strong>Phone:</strong> {profileData.contactInfo.phone}
               </Typography>
             )}
-          </Paper>
+            {profileData.contactInfo?.website && (
+              <Link
+                href={profileData.contactInfo.website}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Personal Website
+              </Link>
+            )}
+          </Stack>
+        </Paper>
 
-          <Paper sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Contact Information</Typography>
-            </Box>
-            <Stack spacing={2}>
-              {profileData.contactInfo?.linkedin && (
-                <Link
-                  href={profileData.contactInfo.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ display: 'inline-flex', alignItems: 'center' }}
+        {/* Profile Actions */}
+        <Grid item xs={12}>
+          <Stack direction="row" spacing={2} justifyContent="flex-end">
+            {currentUser && currentUser._id !== user._id && (
+              <>
+                <Button
+                  variant="outlined"
+                  startIcon={<MessageIcon />}
+                  onClick={() => navigate(`/messages/${user._id}`)}
                 >
-                  <LinkedInIcon sx={{ mr: 1 }} />
-                  LinkedIn Profile
-                </Link>
-              )}
-              {profileData.contactInfo?.phone && (
-                <Typography>
-                  <strong>Phone:</strong> {profileData.contactInfo.phone}
-                </Typography>
-              )}
-              {profileData.contactInfo?.website && (
-                <Link
-                  href={profileData.contactInfo.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  Message
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<StarIcon />}
+                  onClick={() => setOpenReviewDialog(true)}
                 >
-                  Personal Website
-                </Link>
-              )}
-            </Stack>
-          </Paper>
+                  Write Review
+                </Button>
+              </>
+            )}
+          </Stack>
         </Grid>
       </Grid>
-    </>
+    </Grid>
   );
 
   const renderStudentProfile = () => (
-    <>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
-            <Box sx={{ position: 'relative', display: 'inline-block' }}>
-              <Avatar
-                src={user?.profilePicture}
-                sx={{ width: 120, height: 120, margin: '0 auto 16px' }}
-              />
-              {isOwnProfile && (
-                <IconButton
-                  component="label"
-                  sx={{
-                    position: 'absolute',
-                    bottom: 8,
-                    right: 8,
-                    bgcolor: 'background.paper',
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}
-                  disabled={uploading}
-                >
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={handleProfilePictureUpload}
-                  />
-                  {uploading ? (
-                    <CircularProgress size={24} />
-                  ) : (
-                    <PhotoCamera />
-                  )}
-                </IconButton>
-              )}
-            </Box>
-            <Typography variant="h5" gutterBottom>
-              {profileData.name}
-            </Typography>
-            <Typography color="textSecondary" gutterBottom>
-              {profileData.college}
-            </Typography>
-            <Typography color="textSecondary" gutterBottom>
-              {profileData.major} • Class of {profileData.graduationYear}
-            </Typography>
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={4}>
+        <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+          <Box sx={{ position: 'relative', display: 'inline-block' }}>
+            <Avatar
+              src={user?.profilePicture}
+              sx={{ width: 120, height: 120, margin: '0 auto 16px' }}
+            />
             {isOwnProfile && (
+              <IconButton
+                component="label"
+                sx={{
+                  position: 'absolute',
+                  bottom: 8,
+                  right: 8,
+                  bgcolor: 'background.paper',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+                disabled={uploading}
+              >
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleProfilePictureUpload}
+                />
+                {uploading ? (
+                  <CircularProgress size={24} />
+                ) : (
+                  <PhotoCamera />
+                )}
+              </IconButton>
+            )}
+          </Box>
+          <Typography variant="h5" gutterBottom>
+            {profileData.name}
+          </Typography>
+          <Typography color="textSecondary" gutterBottom>
+            {profileData.college}
+          </Typography>
+          <Typography color="textSecondary" gutterBottom>
+            {profileData.major} • Class of {profileData.graduationYear}
+          </Typography>
+          {isOwnProfile && (
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => setIsEditing(true)}
+              sx={{ mt: 2 }}
+            >
+              Edit Profile
+            </Button>
+          )}
+          <Box sx={{ mt: 3 }}>
+            <RatingComponent
+              userId={user._id}
+              userRole="student"
+              currentUser={user}
+            />
+          </Box>
+          {currentUser && currentUser._id !== user._id && (
+            <Stack direction="row" spacing={2} sx={{ mt: 2, justifyContent: 'center' }}>
               <Button
                 variant="outlined"
-                startIcon={<EditIcon />}
-                onClick={() => setIsEditing(true)}
-                sx={{ mt: 2 }}
-              >
-                Edit Profile
-              </Button>
-            )}
-            <Box sx={{ mt: 3 }}>
-              <RatingComponent
-                userId={user._id}
-                userRole="student"
-                currentUser={user}
-              />
-            </Box>
-            {!isOwnProfile && (
-              <Button
-                variant="contained"
                 startIcon={<MessageIcon />}
-                onClick={() => handleStartConversation(user)}
-                sx={{ mt: 2 }}
+                onClick={() => navigate(`/messages/${user._id}`)}
               >
                 Message
               </Button>
-            )}
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={8}>
-          <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              About Me
-            </Typography>
-            <Typography paragraph>
-              {profileData.bio || 'No bio available'}
-            </Typography>
-          </Paper>
-
-          <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">
-                Skills
-              </Typography>
-              {isOwnProfile && (
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={handleManageSkills}
-                >
-                  Manage Skills
-                </Button>
-              )}
-            </Box>
-            <SkillsVisualization skills={skills} />
-          </Paper>
-
-          <Paper elevation={3} sx={{ p: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">
-                Portfolio
-              </Typography>
-              {isOwnProfile && (
-                <IconButton onClick={() => setOpenPortfolioDialog(true)}>
-                  <AddIcon />
-                </IconButton>
-              )}
-            </Box>
-            <Grid container spacing={2}>
-              {portfolio.map((item, index) => (
-                <Grid item xs={12} sm={6} key={index}>
-                  <Paper elevation={2} sx={{ p: 2 }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      {item.title}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      {item.description}
-                    </Typography>
-                    {item.projectUrl && (
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        href={item.projectUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View Project
-                      </Button>
-                    )}
-                    {isOwnProfile && (
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          // Implement delete logic here
-                        }}
-                        sx={{ ml: 1 }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    )}
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-          </Paper>
-        </Grid>
+              <Button
+                variant="outlined"
+                startIcon={<StarIcon />}
+                onClick={() => setOpenReviewDialog(true)}
+              >
+                Write Review
+              </Button>
+            </Stack>
+          )}
+        </Paper>
       </Grid>
-    </>
+      <Grid item xs={12} md={8}>
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            About Me
+          </Typography>
+          <Typography paragraph>
+            {profileData.bio || 'No bio available'}
+          </Typography>
+        </Paper>
+
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6">
+              Skills
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setOpenSkillDialog(true);
+                setNewSkill({
+                  name: '',
+                  category: '',
+                  level: 'beginner'
+                });
+              }}
+            >
+              Add Skill
+            </Button>
+          </Box>
+          <Box sx={{ display: 'grid', gap: 3 }}>
+            {Object.entries(groupedSkills).map(([category, categorySkills]) => (
+              <Paper key={category} elevation={2} sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#2c3e50' }}>
+                  {category}
+                </Typography>
+                <List>
+                  {categorySkills.map((skill, index) => (
+                    <React.Fragment key={skill._id}>
+                      <ListItem>
+                        <ListItemText
+                          primary={skill.name}
+                          secondary={
+                            <Chip
+                              label={getSkillLevelLabel(skill.level)}
+                              size="small"
+                              sx={{
+                                bgcolor: getSkillLevelColor(skill.level),
+                                color: 'white',
+                                mt: 1
+                              }}
+                            />
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleEditSkill(skill)}
+                            sx={{ mr: 1 }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleDeleteSkill(skill._id)}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                      {index < categorySkills.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))}
+                </List>
+              </Paper>
+            ))}
+          </Box>
+        </Paper>
+
+        <Paper elevation={3} sx={{ p: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6">
+              Portfolio
+            </Typography>
+            {isOwnProfile && (
+              <IconButton onClick={() => setOpenPortfolioDialog(true)}>
+                <AddIcon />
+              </IconButton>
+            )}
+          </Box>
+          <Grid container spacing={2}>
+            {portfolio.map((item, index) => (
+              <Grid item xs={12} sm={6} key={index}>
+                <Paper elevation={2} sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {item.title}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary" paragraph>
+                    {item.description}
+                  </Typography>
+                  {item.projectUrl && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      href={item.projectUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View Project
+                    </Button>
+                  )}
+                  {isOwnProfile && (
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        // Implement delete logic here
+                      }}
+                      sx={{ ml: 1 }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  )}
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      </Grid>
+    </Grid>
   );
 
   return (
@@ -795,6 +1007,119 @@ const Profile = () => {
             }}
           >
             Add Project
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Skill Dialog */}
+      <Dialog 
+        open={openSkillDialog} 
+        onClose={() => setOpenSkillDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Add New Skill
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <TextField
+              select
+              label="Category"
+              value={newSkill.category}
+              onChange={(e) => setNewSkill({ ...newSkill, category: e.target.value })}
+              fullWidth
+              required
+            >
+              {skillCategories.map((category) => (
+                <MenuItem key={category} value={category}>
+                  {category}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Skill Name"
+              value={newSkill.name}
+              onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
+              fullWidth
+              required
+            />
+            <TextField
+              select
+              label="Level"
+              value={newSkill.level}
+              onChange={(e) => setNewSkill({ ...newSkill, level: e.target.value })}
+              fullWidth
+              required
+            >
+              <MenuItem value="beginner">Beginner</MenuItem>
+              <MenuItem value="intermediate">Intermediate</MenuItem>
+              <MenuItem value="advanced">Advanced</MenuItem>
+              <MenuItem value="expert">Expert</MenuItem>
+            </TextField>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenSkillDialog(false)}>Cancel</Button>
+          <Button onClick={handleAddSkill} variant="contained">
+            Add Skill
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog 
+        open={openReviewDialog} 
+        onClose={() => setOpenReviewDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Write a Review for {user?.name}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            {reviewError && (
+              <Alert severity="error">
+                {reviewError}
+              </Alert>
+            )}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              <Rating
+                value={newReview.rating}
+                onChange={(event, newValue) => {
+                  setNewReview({ ...newReview, rating: newValue });
+                }}
+                size="large"
+                sx={{ color: 'primary.main' }}
+              />
+              <Typography variant="body2" color="text.secondary">
+                {newReview.rating === 0 ? 'Select your rating' : 
+                 newReview.rating === 1 ? 'Poor' :
+                 newReview.rating === 2 ? 'Fair' :
+                 newReview.rating === 3 ? 'Good' :
+                 newReview.rating === 4 ? 'Very Good' :
+                 'Excellent'}
+              </Typography>
+            </Box>
+            <TextField
+              label="Write your review"
+              multiline
+              rows={4}
+              value={newReview.comment}
+              onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+              fullWidth
+              required
+              placeholder="Share your experience with this user..."
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenReviewDialog(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmitReview}
+            disabled={submittingReview || newReview.rating === 0 || !newReview.comment.trim()}
+          >
+            {submittingReview ? <CircularProgress size={24} /> : 'Submit Review'}
           </Button>
         </DialogActions>
       </Dialog>

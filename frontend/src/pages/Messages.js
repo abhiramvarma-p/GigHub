@@ -111,31 +111,49 @@ const Messages = () => {
     handleNotificationLink();
   }, [location.pathname, conversations]);
 
-  // Handle URL parameters
+  // Update the URL parameters handling
   useEffect(() => {
     const handleUrlParams = async () => {
-      if (userId && jobId) {
-        // Find or create conversation
-        let conversation = conversations.find(c => c.user._id === userId);
-        if (!conversation) {
-          // If conversation doesn't exist, create a temporary one
-          conversation = {
-            _id: userId,
-            user: {
-              _id: userId,
-              name: 'Loading...', // This will be updated when conversations are fetched
-              profilePicture: null
-            },
-            lastMessage: { jobId }
-          };
+      if (!currentUser || !userId) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        let targetUser;
+        const existingConversation = conversations.find(c => c.user._id === userId);
+        
+        if (existingConversation) {
+          targetUser = existingConversation.user;
+        } else {
+          // Fetch user details
+          const response = await axios.get(`http://localhost:5000/api/users/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          targetUser = response.data;
         }
+
+        // Create or update selected conversation
+        const conversation = {
+          _id: userId,
+          user: {
+            _id: userId,
+            name: targetUser.name,
+            profilePicture: targetUser.profilePicture,
+            role: targetUser.role
+          },
+          lastMessage: { jobId: jobId || 'general' }
+        };
+
         setSelectedConversation(conversation);
-        fetchMessages(userId, jobId);
+        fetchMessages(userId, jobId || 'general');
+      } catch (error) {
+        console.error('Error handling URL parameters:', error);
       }
     };
 
     handleUrlParams();
-  }, [userId, jobId, conversations]);
+  }, [userId, jobId, currentUser, conversations]);
 
   const fetchConversations = async () => {
     try {
@@ -146,11 +164,17 @@ const Messages = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // If we have a selected conversation from a notification, update its user info
+      // If we have a selected conversation, preserve its role when updating
       if (selectedConversation) {
         const updatedConversation = response.data.find(c => c.user._id === selectedConversation._id);
         if (updatedConversation) {
-          setSelectedConversation(updatedConversation);
+          setSelectedConversation({
+            ...updatedConversation,
+            user: {
+              ...updatedConversation.user,
+              role: selectedConversation.user.role
+            }
+          });
         }
       }
       
@@ -236,6 +260,18 @@ const Messages = () => {
     }
   };
 
+  // Add this function to handle conversation selection
+  const handleConversationSelect = (conversation) => {
+    // Cache the existing user data when selecting a conversation
+    setSelectedConversation({
+      ...conversation,
+      user: {
+        ...conversation.user,
+        role: conversation.user.role
+      }
+    });
+  };
+
   if (!currentUser) {
     return null; // Don't render anything while redirecting
   }
@@ -256,9 +292,11 @@ const Messages = () => {
               />
               <Box>
                 <Typography variant="h6">{selectedConversation.user.name}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {selectedConversation.user.role === 'student' ? 'Student' : 'Recruiter'}
-                </Typography>
+                {selectedConversation.user.role && (
+                  <Typography variant="body2" color="text.secondary">
+                    {selectedConversation.user.role.charAt(0).toUpperCase() + selectedConversation.user.role.slice(1)}
+                  </Typography>
+                )}
               </Box>
             </Box>
             <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
@@ -340,7 +378,7 @@ const Messages = () => {
                     <ListItem
                       key={conversation._id}
                       button
-                      onClick={() => setSelectedConversation(conversation)}
+                      onClick={() => handleConversationSelect(conversation)}
                     >
                       <ListItemAvatar>
                         <Badge

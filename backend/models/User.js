@@ -34,20 +34,12 @@ const userSchema = new mongoose.Schema({
         maxLength: 500
     },
     skills: [{
-        id: Number,
         name: String,
+        category: String,
         level: {
             type: String,
             enum: ['beginner', 'intermediate', 'advanced', 'expert']
-        },
-        children: [{
-            id: Number,
-            name: String,
-            level: {
-                type: String,
-                enum: ['beginner', 'intermediate', 'advanced', 'expert']
-            }
-        }]
+        }
     }],
     experience: [{
         title: String,

@@ -224,4 +224,37 @@ router.post('/profile-picture', auth, upload.single('profilePicture'), async (re
   }
 });
 
+// Add a single skill
+router.post('/skills', auth, async (req, res) => {
+    try {
+        const { name, category, level } = req.body;
+        
+        // Validate the skill data
+        if (!name || !category || !level) {
+            return res.status(400).json({ message: 'Please provide name, category, and level for the skill' });
+        }
+
+        // Validate the level
+        const validLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
+        if (!validLevels.includes(level.toLowerCase())) {
+            return res.status(400).json({ message: 'Invalid skill level' });
+        }
+
+        // Add the new skill to the user's skills array
+        const newSkill = {
+            name,
+            category,
+            level: level.toLowerCase()
+        };
+
+        req.user.skills.push(newSkill);
+        await req.user.save();
+
+        // Return the newly added skill
+        res.status(201).json(newSkill);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
 module.exports = router; 

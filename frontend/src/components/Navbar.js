@@ -11,6 +11,7 @@ import {
   MenuItem,
   Container,
   Badge,
+  Stack,
 } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,36 +30,17 @@ const StyledAppBar = styled(AppBar)(({ theme }) => ({
 
 const StyledButton = styled(Button)(({ theme }) => ({
   color: 'white',
+  padding: '6px 16px',
   '&:hover': {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
 }));
 
 const Navbar = () => {
-  const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    if (user) {
-      fetchUnreadCount();
-    }
-  }, [user]);
-
-  const fetchUnreadCount = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await axios.get('http://localhost:5000/api/notifications/unread/count', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUnreadCount(response.data.count);
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  };
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -68,59 +50,95 @@ const Navbar = () => {
     setAnchorEl(null);
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Failed to log out:', error);
-    }
+  const handleLogout = () => {
+    logout();
+    handleClose();
   };
 
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await axios.get('http://localhost:5000/api/messages/unread/count', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUnreadCount(response.data.count);
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    if (user) {
+      fetchUnreadCount();
+    }
+  }, [user]);
+
   return (
-    <StyledAppBar position="fixed" elevation={0}>
+    <StyledAppBar position="fixed">
       <Container maxWidth="xl">
-        <Toolbar disableGutters sx={{ height: '64px' }}>
+        <Toolbar disableGutters sx={{ height: '100%' }}>
           <Typography
             variant="h6"
-            component="div"
+            noWrap
+            component={Link}
+            to="/"
             sx={{
-              flexGrow: 1,
+              mr: 4,
+              display: { xs: 'none', md: 'flex' },
+              fontFamily: 'monospace',
               fontWeight: 700,
-              cursor: 'pointer',
-              background: 'linear-gradient(45deg, #fff, rgba(255,255,255,0.7))',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              letterSpacing: '.3rem',
+              color: 'inherit',
+              textDecoration: 'none',
             }}
-            onClick={() => navigate('/')}
           >
-            GigHub
+            GIGHUB
           </Typography>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {user && <NotificationBell />}
+          <Stack direction="row" spacing={2} sx={{ flexGrow: 1 }}>
+            <StyledButton onClick={() => navigate('/jobs')}>Jobs</StyledButton>
+            {user?.role === 'student' && (
+              <StyledButton onClick={() => navigate('/my-applications')}>My Applications</StyledButton>
+            )}
+          </Stack>
+
+          <Stack direction="row" spacing={2} alignItems="center">
             {!user ? (
-              <Box>
+              <>
                 <StyledButton onClick={() => navigate('/login')}>Login</StyledButton>
                 <StyledButton onClick={() => navigate('/register')}>Register</StyledButton>
-              </Box>
+              </>
             ) : (
-              <Box display="flex" alignItems="center" gap={2}>
-                <StyledButton onClick={() => navigate('/jobs')}>Jobs</StyledButton>
-                {user.role === 'student' && (
-                  <StyledButton onClick={() => navigate('/my-applications')}>My Applications</StyledButton>
-                )}
+              <>
+                {user && <NotificationBell />}
                 <IconButton
                   color="inherit"
                   onClick={() => navigate('/messages')}
-                  sx={{ ml: 2 }}
+                  sx={{ 
+                    width: 40,
+                    height: 40,
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    }
+                  }}
                 >
                   <Badge badgeContent={unreadCount} color="error">
                     <MailIcon />
                   </Badge>
                 </IconButton>
-                <IconButton onClick={handleMenu} sx={{ p: 0 }}>
+                <IconButton 
+                  onClick={handleMenu} 
+                  sx={{ 
+                    p: 0,
+                    width: 40,
+                    height: 40,
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    }
+                  }}
+                >
                   <Avatar
                     src={user.profilePicture}
                     alt={user.name}
@@ -137,24 +155,29 @@ const Navbar = () => {
                   onClose={handleClose}
                   PaperProps={{
                     sx: {
-                      background: 'rgba(18, 18, 18, 0.95)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: 'white',
-                      minWidth: 150,
-                    },
+                      mt: 1.5,
+                      minWidth: 180,
+                      borderRadius: 1,
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    }
                   }}
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
-                  <MenuItem onClick={() => { handleClose(); navigate('/profile'); }}>
+                  <MenuItem 
+                    onClick={() => { navigate('/profile'); handleClose(); }}
+                    sx={{ py: 1.5 }}
+                  >
                     Profile
                   </MenuItem>
-                  <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                  <MenuItem 
+                    onClick={handleLogout}
+                    sx={{ py: 1.5 }}
+                  >
+                    Logout
+                  </MenuItem>
                 </Menu>
-              </Box>
+              </>
             )}
-          </Box>
+          </Stack>
         </Toolbar>
       </Container>
     </StyledAppBar>
