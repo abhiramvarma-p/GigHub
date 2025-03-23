@@ -35,16 +35,31 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const job = await Job.findById(req.params.id)
-      .populate('recruiter', 'name company')
+      .populate('recruiter', 'name company position')
       .populate('applicants.student', 'name college');
 
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    res.json(job);
+    // Format the job data
+    const jobData = {
+      ...job.toObject(),
+      requirements: Array.isArray(job.requirements) ? job.requirements : [job.requirements],
+      pay: {
+        amount: job.pay?.amount || 0,
+        type: job.pay?.type || 'fixed'
+      },
+      requiredSkills: job.requiredSkills?.map(skill => ({
+        name: skill.name,
+        level: skill.level
+      })) || []
+    };
+
+    res.json(jobData);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching job:', error);
+    res.status(500).json({ message: 'Error fetching job details' });
   }
 });
 
@@ -100,6 +115,12 @@ router.patch('/:id', auth, async (req, res) => {
     Object.assign(job, updateData);
     job.updatedAt = new Date();
 
+    // Validate the updated data
+    const validationError = job.validateSync();
+    if (validationError) {
+      return res.status(400).json({ message: validationError.message });
+    }
+
     await job.save();
 
     // Create notifications for all previous applicants
@@ -108,12 +129,19 @@ router.patch('/:id', auth, async (req, res) => {
         recipient: applicant.student,
         type: 'application_deleted',
         job: job._id,
-        message: `Your application for ${job.title} was deleted due to job updates. Please apply again if interested.`
+        message: `Your application for ${job.title} was deleted due to job updates. Please apply again if interested.`,
+        link: `/jobs/${job._id}`
       }).save();
     }
 
-    res.json(job);
+    // Return the updated job with populated fields
+    const updatedJob = await Job.findById(job._id)
+      .populate('recruiter', 'name company position')
+      .populate('applicants.student', 'name college');
+
+    res.json(updatedJob);
   } catch (error) {
+    console.error('Error updating job:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -174,7 +202,8 @@ router.post('/:id/apply', auth, async (req, res) => {
       recipient: job.recruiter._id,
       type: 'application',
       job: job._id,
-      message: `New application for ${job.title} from ${req.user.name}`
+      message: `New application for ${job.title} from ${req.user.name}`,
+      link: `/jobs/${job._id}`
     }).save();
 
     // Populate the job with recruiter and applicant details
@@ -216,7 +245,8 @@ router.patch('/:id/applications/:applicationId', auth, async (req, res) => {
       recipient: application.student,
       type: status === 'Accepted' ? 'application_accepted' : 'application_rejected',
       job: job._id,
-      message: `Your application for ${job.title} has been ${status.toLowerCase()}`
+      message: `Your application for ${job.title} has been ${status.toLowerCase()}`,
+      link: `/jobs/${job._id}`
     }).save();
 
     // Populate the job with recruiter details

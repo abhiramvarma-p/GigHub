@@ -31,6 +31,7 @@ const CreateJob = () => {
     description: '',
     requirements: '',
     category: '',
+    company: '',
     pay: {
       amount: '',
       type: 'fixed'
@@ -67,6 +68,13 @@ const CreateJob = () => {
         }
       }));
     } else {
+      // Validate enum values
+      if (name === 'type' && !['remote', 'hybrid', 'onsite'].includes(value)) {
+        return; // Invalid type value
+      }
+      if (name === 'experience' && !['Beginner', 'Intermediate', 'Advanced', 'Expert'].includes(value)) {
+        return; // Invalid experience value
+      }
       setFormData(prev => ({
         ...prev,
         [name]: value
@@ -103,24 +111,43 @@ const CreateJob = () => {
 
       // Validate required fields
       if (!formData.title || !formData.description || !formData.requirements || 
-          !formData.pay.amount || !formData.duration || !formData.category || !formData.deadline) {
+          !formData.pay.amount || !formData.duration || !formData.category || 
+          !formData.deadline || !formData.company || !formData.location) {
         setError('Please fill in all required fields');
         return;
       }
 
+      // Validate enum values
+      if (!['remote', 'hybrid', 'onsite'].includes(formData.type)) {
+        setError('Invalid work type selected');
+        return;
+      }
+      if (!['Beginner', 'Intermediate', 'Advanced', 'Expert'].includes(formData.experience)) {
+        setError('Invalid experience level selected');
+        return;
+      }
+
       const jobData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        requirements: formData.requirements.split('\n').filter(req => req.trim()),
+        category: formData.category,
+        company: formData.company,
         pay: {
           amount: Number(formData.pay.amount),
           type: formData.pay.type
         },
         duration: Number(formData.duration),
+        location: formData.location,
+        type: formData.type,
+        experience: formData.experience,
         deadline: new Date(formData.deadline).toISOString(),
         requiredSkills: formData.requiredSkills.map(skill => ({
           name: skill,
           level: formData.experience
         })),
         recruiter: user._id,
+        postedBy: user._id,
         status: formData.status,
         createdAt: new Date().toISOString()
       };
@@ -142,9 +169,8 @@ const CreateJob = () => {
       console.log('Job creation response:', response.data);
       setSuccess('Job created successfully!');
       
-      // Wait a moment before navigating to show the success message
       setTimeout(() => {
-        navigate('/active-gigs');
+        navigate('/jobs');
       }, 2000);
     } catch (error) {
       console.error('Error creating job:', error);
@@ -240,6 +266,17 @@ const CreateJob = () => {
                 label="Requirements"
                 name="requirements"
                 value={formData.requirements}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                label="Company"
+                name="company"
+                value={formData.company}
                 onChange={handleChange}
               />
             </Grid>

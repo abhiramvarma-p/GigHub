@@ -47,19 +47,15 @@ const jobSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    salary: {
-        type: String,
-        required: true,
-    },
     type: {
         type: String,
         required: true,
-        enum: ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship']
+        enum: ['remote', 'hybrid', 'onsite']
     },
     experience: {
         type: String,
         required: true,
-        enum: ['Entry Level', 'Junior', 'Mid Level', 'Senior', 'Lead', 'Manager']
+        enum: ['Beginner', 'Intermediate', 'Advanced', 'Expert']
     },
     postedBy: {
         type: mongoose.Schema.Types.ObjectId,

@@ -161,7 +161,7 @@ const NotificationBell = () => {
           )}
         </Box>
         <Divider />
-        <List sx={{ p: 0 }}>
+        <List>
           {notifications.length === 0 ? (
             <ListItem>
               <ListItemText primary="No notifications" />

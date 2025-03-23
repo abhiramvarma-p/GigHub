@@ -125,6 +125,9 @@ const Profile = () => {
   });
   const [reviewError, setReviewError] = useState(null);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [extractedSkills, setExtractedSkills] = useState([]);
+  const [showSkillsConfirmation, setShowSkillsConfirmation] = useState(false);
+  const [skillSelections, setSkillSelections] = useState({});
 
   const groupedSkills = skills.reduce((acc, skill) => {
     if (!acc[skill.category]) {
@@ -407,9 +410,17 @@ const Profile = () => {
         }
       );
 
-      // Show success message
-      setError('');
-      alert(`Resume uploaded successfully! ${response.data.newSkillsAdded} new skills added to your profile.`);
+      // Initialize skill selections with default values
+      const initialSelections = {};
+      response.data.skills.forEach(skill => {
+        initialSelections[skill] = {
+          category: '',
+          level: 'beginner'
+        };
+      });
+      setSkillSelections(initialSelections);
+      setExtractedSkills(response.data.skills || []);
+      setShowSkillsConfirmation(true);
       
       // Refresh the profile data
       fetchUserProfile();
@@ -418,6 +429,55 @@ const Profile = () => {
       setError(error.response?.data?.message || 'Failed to upload resume');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleSkillSelectionChange = (skill, field, value) => {
+    setSkillSelections(prev => ({
+      ...prev,
+      [skill]: {
+        ...prev[skill],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleConfirmSkills = async () => {
+    try {
+      // Validate that all skills have category and level selected
+      const missingSelections = Object.entries(skillSelections).filter(
+        ([_, selection]) => !selection.category || !selection.level
+      );
+
+      if (missingSelections.length > 0) {
+        setError('Please select category and level for all skills');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      await axios.post(
+        'http://localhost:5000/api/users/confirm-skills',
+        { 
+          skills: Object.entries(skillSelections).map(([skill, selection]) => ({
+            name: skill,
+            category: selection.category,
+            level: selection.level
+          }))
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      setShowSkillsConfirmation(false);
+      setExtractedSkills([]);
+      setSkillSelections({});
+      fetchUserProfile();
+    } catch (error) {
+      console.error('Error confirming skills:', error);
+      setError(error.response?.data?.message || 'Failed to confirm skills');
     }
   };
 
@@ -1162,6 +1222,69 @@ const Profile = () => {
             disabled={submittingReview || newReview.rating === 0 || !newReview.comment.trim()}
           >
             {submittingReview ? <CircularProgress size={24} /> : 'Submit Review'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Skills Confirmation Dialog */}
+      <Dialog 
+        open={showSkillsConfirmation} 
+        onClose={() => setShowSkillsConfirmation(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Confirm Extracted Skills</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom>
+            Please review and configure the skills extracted from your resume:
+          </Typography>
+          <Box sx={{ mt: 2, maxHeight: 500, overflow: 'auto' }}>
+            <List>
+              {extractedSkills.map((skill, index) => (
+                <ListItem key={index} sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <ListItemText primary={skill} />
+                  <Box sx={{ display: 'flex', gap: 2, mt: 1, width: '100%' }}>
+                    <TextField
+                      select
+                      label="Category"
+                      value={skillSelections[skill]?.category || ''}
+                      onChange={(e) => handleSkillSelectionChange(skill, 'category', e.target.value)}
+                      sx={{ flex: 1 }}
+                      required
+                    >
+                      {skillCategories.map((category) => (
+                        <MenuItem key={category} value={category}>
+                          {category}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      select
+                      label="Level"
+                      value={skillSelections[skill]?.level || 'beginner'}
+                      onChange={(e) => handleSkillSelectionChange(skill, 'level', e.target.value)}
+                      sx={{ flex: 1 }}
+                      required
+                    >
+                      <MenuItem value="beginner">Beginner</MenuItem>
+                      <MenuItem value="intermediate">Intermediate</MenuItem>
+                      <MenuItem value="advanced">Advanced</MenuItem>
+                      <MenuItem value="expert">Expert</MenuItem>
+                    </TextField>
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowSkillsConfirmation(false)}>Cancel</Button>
+          <Button 
+            onClick={handleConfirmSkills} 
+            variant="contained"
+            disabled={Object.values(skillSelections).some(selection => !selection.category || !selection.level)}
+          >
+            Confirm and Add Skills
           </Button>
         </DialogActions>
       </Dialog>

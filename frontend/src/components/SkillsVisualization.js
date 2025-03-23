@@ -46,21 +46,39 @@ const SkillsVisualization = ({ skills }) => {
 
       // Process each skill
       if (Array.isArray(skillsData)) {
-        skillsData.forEach(skill => {
-          if (!processedNodes.has(skill.id)) {
-            processedNodes.add(skill.id);
+        // Create "Other" category node if there are uncategorized skills
+        if (skillsData.length > 0) {
+          const otherCategoryId = 'category-other';
+          if (!processedNodes.has(otherCategoryId)) {
+            processedNodes.add(otherCategoryId);
             nodes.push({
-              id: skill.id,
-              name: skill.name,
-              isSkill: true,
-              level: skill.level || 'beginner'
+              id: otherCategoryId,
+              name: 'Other',
+              isCategory: true
             });
             links.push({
-              source: 'root', // Adjust this based on your hierarchy
-              target: skill.id
+              source: 'root',
+              target: otherCategoryId
             });
           }
-        });
+
+          // Add skills to "Other" category
+          skillsData.forEach(skill => {
+            if (!processedNodes.has(skill.id)) {
+              processedNodes.add(skill.id);
+              nodes.push({
+                id: skill.id,
+                name: skill.name,
+                isSkill: true,
+                level: skill.level || 'beginner'
+              });
+              links.push({
+                source: 'category-other',
+                target: skill.id
+              });
+            }
+          });
+        }
       }
 
       // Process categories and their skills

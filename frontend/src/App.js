@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Navbar from './components/Navbar';
@@ -12,7 +12,9 @@ import JobDetail from './pages/JobDetail';
 import Messages from './pages/Messages';
 import MyApplications from './pages/MyApplications';
 import CreateJob from './pages/CreateJob';
-import { AuthProvider } from './contexts/AuthContext';
+import EditJob from './pages/EditJob';
+import StudentDashboard from './pages/StudentDashboard';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Box from '@mui/material/Box';
 
 const theme = createTheme({
@@ -43,6 +45,14 @@ const theme = createTheme({
   },
 });
 
+const HomeRedirect = () => {
+  const { user } = useAuth();
+  if (user?.role === 'student') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Home />;
+};
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -61,15 +71,17 @@ function App() {
             }}
           >
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<HomeRedirect />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/profile/:id?" element={<Profile />} />
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/jobs/:id" element={<JobDetail />} />
+              <Route path="/jobs/:id/edit" element={<EditJob />} />
               <Route path="/messages/:userId?/:jobId?" element={<Messages />} />
               <Route path="/my-applications" element={<MyApplications />} />
               <Route path="/create-job" element={<CreateJob />} />
+              <Route path="/dashboard" element={<StudentDashboard />} />
             </Routes>
           </Box>
         </Box>

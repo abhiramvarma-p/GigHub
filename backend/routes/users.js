@@ -64,6 +64,22 @@ const resumeUpload = multer({
     }
 });
 
+// Get recommended jobs based on user skills
+router.get('/recommended-jobs', auth, async (req, res) => {
+    try {
+        const userSkills = req.user.skills.map(skill => skill.name);
+        const Job = require('../models/Job');
+        const jobs = await Job.find({
+            'requiredSkills.name': { $in: userSkills },
+            status: 'Open'
+        }).populate('recruiter', 'name email');
+        
+        res.json(jobs);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
 // Get user profile by ID
 router.get('/:id', async (req, res) => {
     try {
@@ -221,25 +237,11 @@ router.post('/resume', auth, resumeUpload.single('resume'), async (req, res) => 
             parsedSkills: skills
         };
 
-        // Add any new skills to the user's skills array
-        const existingSkillNames = new Set(req.user.skills.map(s => s.name.toLowerCase()));
-        const newSkills = skills.filter(skill => !existingSkillNames.has(skill.toLowerCase()))
-            .map(skill => ({
-                name: skill,
-                category: 'Other', // Default category
-                level: 'beginner' // Default level
-            }));
-
-        if (newSkills.length > 0) {
-            req.user.skills = [...req.user.skills, ...newSkills];
-        }
-
         await req.user.save();
 
         res.json({
             message: 'Resume uploaded and parsed successfully',
-            skills: skills,
-            newSkillsAdded: newSkills.length
+            skills: skills
         });
     } catch (error) {
         console.error('Resume upload error:', error);
@@ -247,19 +249,40 @@ router.post('/resume', auth, resumeUpload.single('resume'), async (req, res) => 
     }
 });
 
-// Get recommended jobs based on user skills
-router.get('/recommended-jobs', auth, async (req, res) => {
+// Confirm and add skills from resume
+router.post('/confirm-skills', auth, async (req, res) => {
     try {
-        const userSkills = req.user.skills.map(skill => skill.name);
-        const Job = require('../models/Job');
-        const jobs = await Job.find({
-            'requiredSkills.name': { $in: userSkills },
-            status: 'Open'
-        }).populate('employer', 'name email');
+        const { skills } = req.body;
         
-        res.json(jobs);
+        if (!Array.isArray(skills)) {
+            return res.status(400).json({ message: 'Skills must be an array' });
+        }
+
+        // Validate each skill has required fields
+        for (const skill of skills) {
+            if (!skill.name || !skill.category || !skill.level) {
+                return res.status(400).json({ 
+                    message: 'Each skill must have name, category, and level' 
+                });
+            }
+        }
+
+        // Add any new skills to the user's skills array
+        const existingSkillNames = new Set(req.user.skills.map(s => s.name.toLowerCase()));
+        const newSkills = skills.filter(skill => !existingSkillNames.has(skill.name.toLowerCase()));
+
+        if (newSkills.length > 0) {
+            req.user.skills = [...req.user.skills, ...newSkills];
+            await req.user.save();
+        }
+
+        res.json({
+            message: 'Skills added successfully',
+            newSkillsAdded: newSkills.length
+        });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error('Error confirming skills:', error);
+        res.status(500).json({ message: error.message });
     }
 });
 
