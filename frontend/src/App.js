@@ -1,9 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
+import HomeRedirect from './components/HomeRedirect';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
@@ -14,44 +14,9 @@ import MyApplications from './pages/MyApplications';
 import CreateJob from './pages/CreateJob';
 import EditJob from './pages/EditJob';
 import StudentDashboard from './pages/StudentDashboard';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import Box from '@mui/material/Box';
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#90caf9',
-    },
-    secondary: {
-      main: '#f48fb1',
-    },
-    background: {
-      default: '#121212',
-      paper: '#1e1e1e',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-  },
-  components: {
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          backgroundImage: 'none',
-        },
-      },
-    },
-  },
-});
-
-const HomeRedirect = () => {
-  const { user } = useAuth();
-  if (user?.role === 'student') {
-    return <Navigate to="/dashboard" replace />;
-  }
-  return <Home />;
-};
+import theme from './theme';
 
 function App() {
   return (
@@ -64,7 +29,7 @@ function App() {
             component="main"
             sx={{
               flexGrow: 1,
-              pt: 8, // Add padding top to account for fixed navbar
+              pt: 8,
               pb: 4,
               minHeight: '100vh',
               background: theme.palette.background.default,

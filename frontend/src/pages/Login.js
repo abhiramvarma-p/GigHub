@@ -14,19 +14,25 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { styled } from '@mui/material/styles';
 
+const StyledContainer = styled(Container)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: 'calc(100vh - 64px)', // Subtract navbar height
+  padding: theme.spacing(3),
+}));
+
 const StyledPaper = styled(Paper)(({ theme }) => ({
-  marginTop: theme.spacing(8),
   padding: theme.spacing(4),
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  background: 'rgba(30, 41, 59, 0.7)',
+  background: '#212121',
   backdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255, 255, 255, 0.05)',
+  border: '1px solid #A35C7A',
   borderRadius: 16,
   maxWidth: 400,
   width: '100%',
-  margin: '0 auto',
 }));
 
 const StyledForm = styled('form')(({ theme }) => ({
@@ -67,12 +73,12 @@ const Login = () => {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <StyledPaper elevation={3}>
-        <Typography component="h1" variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+    <StyledContainer component="main" maxWidth="xs">
+      <StyledPaper>
+        <Typography component="h1" variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#FEF6EB' }}>
           Welcome Back
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+        <Typography variant="body2" sx={{ mb: 4, color: '#FEF6EB' }}>
           Sign in to continue to GigHub
         </Typography>
 
@@ -101,6 +107,26 @@ const Login = () => {
                   backgroundColor: 'rgba(255, 255, 255, 0.05)',
                 },
               },
+              '& .MuiInputLabel-root': {
+                color: '#FEF6EB',
+                '&.Mui-required': {
+                  '& .MuiInputLabel-asterisk': {
+                    color: '#A35C7A',
+                  },
+                },
+              },
+              '& .MuiOutlinedInput-input': {
+                color: '#FEF6EB',
+              },
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#A35C7A',
+              },
+              '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#A35C7A',
+              },
             }}
           />
           <TextField
@@ -121,13 +147,42 @@ const Login = () => {
                   backgroundColor: 'rgba(255, 255, 255, 0.05)',
                 },
               },
+              '& .MuiInputLabel-root': {
+                color: '#FEF6EB',
+                '&.Mui-required': {
+                  '& .MuiInputLabel-asterisk': {
+                    color: '#A35C7A',
+                  },
+                },
+              },
+              '& .MuiOutlinedInput-input': {
+                color: '#FEF6EB',
+              },
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#A35C7A',
+              },
+              '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#A35C7A',
+              },
             }}
           />
           <Button
             type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 3, mb: 2, py: 1.5 }}
+            sx={{ 
+              mt: 3, 
+              mb: 2, 
+              py: 1.5,
+              bgcolor: '#A35C7A',
+              color: '#FEF6EB',
+              '&:hover': {
+                bgcolor: '#C890A7',
+              },
+            }}
             disabled={loading}
           >
             {loading ? <CircularProgress size={24} /> : 'Sign In'}
@@ -138,7 +193,7 @@ const Login = () => {
               variant="body2"
               onClick={() => navigate('/register')}
               sx={{
-                color: 'primary.main',
+                color: '#FEF6EB',
                 textDecoration: 'none',
                 '&:hover': {
                   textDecoration: 'underline',
@@ -150,7 +205,7 @@ const Login = () => {
           </Box>
         </StyledForm>
       </StyledPaper>
-    </Container>
+    </StyledContainer>
   );
 };
 

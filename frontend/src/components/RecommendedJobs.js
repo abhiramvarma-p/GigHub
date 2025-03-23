@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import RupeeSymbol from './RupeeSymbol';
 
 const RecommendedJobs = () => {
   const navigate = useNavigate();
@@ -82,8 +83,10 @@ const RecommendedJobs = () => {
                     {job.description.substring(0, 150)}...
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                    <Typography variant="body2">
-                      <strong>Pay:</strong> ₹{job.pay?.amount?.toLocaleString() || 'Not specified'}
+                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <strong>Pay:</strong>
+                      <RupeeSymbol style={{ fontSize: '1rem', display: 'inline-flex', alignItems: 'center' }} />
+                      {job.pay?.amount?.toLocaleString() || 'Not specified'}
                       {job.pay?.type === 'hourly' ? '/hour' : ''}
                     </Typography>
                     <Typography variant="body2">
