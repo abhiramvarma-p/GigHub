@@ -42,7 +42,8 @@ const EditJob = () => {
     type: 'remote',
     experience: 'Beginner',
     deadline: '',
-    status: 'Open'
+    status: 'Open',
+    company: '',
   });
   const [newSkill, setNewSkill] = useState('');
   const [error, setError] = useState('');
@@ -50,36 +51,50 @@ const EditJob = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchJobDetails();
+    if (id) {
+      fetchJobDetails();
+    }
   }, [id]);
 
   const fetchJobDetails = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(`http://localhost:5000/api/jobs/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const jobData = response.data;
       
+      console.log('Fetched job data:', jobData); // Debug log
+      
       // Set form data with proper defaults
       setFormData({
         title: jobData.title || '',
         description: jobData.description || '',
-        requirements: jobData.requirements || '',
+        requirements: Array.isArray(jobData.requirements) ? jobData.requirements.join('\n') : jobData.requirements || '',
+        category: jobData.category || '',
+        company: jobData.company || '',
         pay: {
           amount: jobData.pay?.amount || '',
           type: jobData.pay?.type || 'fixed'
         },
         duration: jobData.duration || '',
-        category: jobData.category || '',
+        location: jobData.location || '',
+        type: jobData.type || 'remote',
+        experience: jobData.experience || 'Beginner',
         deadline: jobData.deadline ? new Date(jobData.deadline).toISOString().split('T')[0] : '',
         status: jobData.status || 'Open',
-        requiredSkills: jobData.requiredSkills?.map(skill => skill.name) || [],
-        experience: jobData.requiredSkills?.[0]?.level || 'Beginner'
+        requiredSkills: jobData.requiredSkills?.map(skill => skill.name) || []
       });
     } catch (error) {
       console.error('Error fetching job details:', error);
       setError(error.response?.data?.message || 'Failed to fetch job details');
+      // Navigate back to jobs page if job not found or unauthorized
+      if (error.response?.status === 404 || error.response?.status === 403) {
+        setTimeout(() => {
+          navigate('/jobs');
+        }, 2000);
+      }
     } finally {
       setLoading(false);
     }
@@ -130,20 +145,31 @@ const EditJob = () => {
     try {
       setLoading(true);
 
+      // Validate required fields
       if (!formData.title || !formData.description || !formData.requirements || 
-          !formData.pay.amount || !formData.duration || !formData.category || !formData.deadline) {
+          !formData.pay.amount || !formData.duration || !formData.category || 
+          !formData.deadline || !formData.company || !formData.location) {
         setError('Please fill in all required fields');
         return;
       }
 
+      // Prepare job data
       const jobData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        requirements: formData.requirements.split('\n').filter(req => req.trim()),
+        category: formData.category,
         pay: {
           amount: Number(formData.pay.amount),
           type: formData.pay.type
         },
         duration: Number(formData.duration),
+        location: formData.location,
+        type: formData.type,
+        experience: formData.experience,
         deadline: new Date(formData.deadline).toISOString(),
+        status: formData.status,
+        company: formData.company,
         requiredSkills: formData.requiredSkills.map(skill => ({
           name: skill,
           level: formData.experience
@@ -175,7 +201,18 @@ const EditJob = () => {
   };
 
   if (!user || user.role !== 'recruiter') {
+    navigate('/');
     return null;
+  }
+
+  if (loading) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography>Loading job details...</Typography>
+        </Paper>
+      </Container>
+    );
   }
 
   return (
@@ -247,10 +284,11 @@ const EditJob = () => {
                 fullWidth
                 multiline
                 rows={4}
-                label="Requirements"
+                label="Requirements (one per line)"
                 name="requirements"
                 value={formData.requirements}
                 onChange={handleChange}
+                helperText="Enter each requirement on a new line"
               />
             </Grid>
 
@@ -338,6 +376,17 @@ const EditJob = () => {
                 label="Location"
                 name="location"
                 value={formData.location}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                label="Company"
+                name="company"
+                value={formData.company}
                 onChange={handleChange}
               />
             </Grid>

@@ -35,16 +35,31 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const job = await Job.findById(req.params.id)
-      .populate('recruiter', 'name company')
+      .populate('recruiter', 'name company position')
       .populate('applicants.student', 'name college');
 
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    res.json(job);
+    // Format the job data
+    const jobData = {
+      ...job.toObject(),
+      requirements: Array.isArray(job.requirements) ? job.requirements : [job.requirements],
+      pay: {
+        amount: job.pay?.amount || 0,
+        type: job.pay?.type || 'fixed'
+      },
+      requiredSkills: job.requiredSkills?.map(skill => ({
+        name: skill.name,
+        level: skill.level
+      })) || []
+    };
+
+    res.json(jobData);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching job:', error);
+    res.status(500).json({ message: 'Error fetching job details' });
   }
 });
 
@@ -100,6 +115,12 @@ router.patch('/:id', auth, async (req, res) => {
     Object.assign(job, updateData);
     job.updatedAt = new Date();
 
+    // Validate the updated data
+    const validationError = job.validateSync();
+    if (validationError) {
+      return res.status(400).json({ message: validationError.message });
+    }
+
     await job.save();
 
     // Create notifications for all previous applicants
@@ -112,8 +133,14 @@ router.patch('/:id', auth, async (req, res) => {
       }).save();
     }
 
-    res.json(job);
+    // Return the updated job with populated fields
+    const updatedJob = await Job.findById(job._id)
+      .populate('recruiter', 'name company position')
+      .populate('applicants.student', 'name college');
+
+    res.json(updatedJob);
   } catch (error) {
+    console.error('Error updating job:', error);
     res.status(400).json({ message: error.message });
   }
 });

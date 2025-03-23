@@ -12,6 +12,7 @@ import JobDetail from './pages/JobDetail';
 import Messages from './pages/Messages';
 import MyApplications from './pages/MyApplications';
 import CreateJob from './pages/CreateJob';
+import EditJob from './pages/EditJob';
 import { AuthProvider } from './contexts/AuthContext';
 import Box from '@mui/material/Box';
 
@@ -67,6 +68,7 @@ function App() {
               <Route path="/profile/:id?" element={<Profile />} />
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/jobs/:id" element={<JobDetail />} />
+              <Route path="/jobs/:id/edit" element={<EditJob />} />
               <Route path="/messages/:userId?/:jobId?" element={<Messages />} />
               <Route path="/my-applications" element={<MyApplications />} />
               <Route path="/create-job" element={<CreateJob />} />

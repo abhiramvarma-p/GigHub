@@ -31,6 +31,7 @@ const CreateJob = () => {
     description: '',
     requirements: '',
     category: '',
+    company: '',
     pay: {
       amount: '',
       type: 'fixed'
@@ -103,7 +104,8 @@ const CreateJob = () => {
 
       // Validate required fields
       if (!formData.title || !formData.description || !formData.requirements || 
-          !formData.pay.amount || !formData.duration || !formData.category || !formData.deadline) {
+          !formData.pay.amount || !formData.duration || !formData.category || 
+          !formData.deadline || !formData.company || !formData.location) {
         setError('Please fill in all required fields');
         return;
       }
@@ -121,9 +123,13 @@ const CreateJob = () => {
           level: formData.experience
         })),
         recruiter: user._id,
+        postedBy: user._id,
         status: formData.status,
         createdAt: new Date().toISOString()
       };
+
+      // Remove salary field if it exists
+      delete jobData.salary;
 
       console.log('Submitting job data:', jobData);
 
@@ -144,7 +150,7 @@ const CreateJob = () => {
       
       // Wait a moment before navigating to show the success message
       setTimeout(() => {
-        navigate('/active-gigs');
+        navigate('/jobs');
       }, 2000);
     } catch (error) {
       console.error('Error creating job:', error);
@@ -240,6 +246,17 @@ const CreateJob = () => {
                 label="Requirements"
                 name="requirements"
                 value={formData.requirements}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                label="Company"
+                name="company"
+                value={formData.company}
                 onChange={handleChange}
               />
             </Grid>
