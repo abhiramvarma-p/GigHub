@@ -28,6 +28,7 @@ import {
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
+import RupeeSymbol from '../components/RupeeSymbol';
 
 const JobDetail = () => {
   const { id } = useParams();
@@ -252,16 +253,34 @@ const JobDetail = () => {
             <Typography variant="h4" gutterBottom>
               {job.title}
             </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
-              Posted by{' '}
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              color: 'text.secondary',
+              mb: 2
+            }}>
+              <Typography>Posted by</Typography>
               <Button
                 color="primary"
                 onClick={() => navigate(`/profile/${job.recruiter._id}`)}
-                sx={{ textTransform: 'none', p: 0, minWidth: 'auto' }}
+                sx={{ 
+                  textTransform: 'none',
+                  p: 0,
+                  minWidth: 'fit-content',
+                  minHeight: 'unset',
+                  lineHeight: 'inherit',
+                  fontWeight: 'inherit',
+                  letterSpacing: 'inherit',
+                  '&:hover': {
+                    backgroundColor: 'transparent',
+                    textDecoration: 'underline'
+                  }
+                }}
               >
                 {job.recruiter?.name}
               </Button>
-            </Typography>
+            </Box>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <Chip
@@ -319,9 +338,11 @@ const JobDetail = () => {
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <Typography variant="body1">
-            <strong>Pay:</strong> ₹{job.pay ? job.pay.amount.toLocaleString() : 'Not specified'}
-            {job.pay?.type === 'hourly' ? '/hour' : ' (fixed)'}
+          <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <strong>Pay:</strong>
+            <span style={{ fontFamily: 'system-ui, -apple-system, Arial' }}>&#8377;</span>
+            {job.pay ? job.pay.amount.toLocaleString() : 'Not specified'}
+            {job.pay?.type === 'hourly' ? '/hour' : ''}
           </Typography>
           <Typography variant="body1">
             <strong>Duration:</strong> {job.duration} weeks

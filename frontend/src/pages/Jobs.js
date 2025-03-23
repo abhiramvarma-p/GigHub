@@ -30,6 +30,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { predefinedCategories } from '../data/predefinedCategories';
+import RupeeSymbol from '../components/RupeeSymbol';
 
 const CATEGORIES = predefinedCategories.map(category => category.name);
 
@@ -155,8 +156,10 @@ const Jobs = () => {
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Typography variant="body2">
-            <strong>Pay:</strong> ₹{job.pay ? job.pay.amount.toLocaleString() : 'Not specified'}
+          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <strong>Pay:</strong>
+            <span style={{ fontFamily: 'system-ui, -apple-system, Arial' }}>&#8377;</span>
+            {job.pay ? job.pay.amount.toLocaleString() : 'Not specified'}
             {job.pay?.type === 'hourly' ? '/hour' : ''}
           </Typography>
           <Typography variant="body2">

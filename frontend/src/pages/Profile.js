@@ -801,7 +801,7 @@ const Profile = () => {
           </Typography>
         </Paper>
 
-        <Paper elevation={3} sx={{ p: 3 }}>
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">Skills</Typography>
             {isOwnProfile && (
@@ -817,7 +817,7 @@ const Profile = () => {
           <SkillTree skills={skills} onUpdateSkills={handleSaveSkills} />
         </Paper>
 
-        <Paper elevation={3} sx={{ p: 3 }}>
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6">
               Portfolio
@@ -866,7 +866,7 @@ const Profile = () => {
           </Grid>
         </Paper>
 
-        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+        <Paper elevation={3} sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">Resume</Typography>
             {isOwnProfile && (

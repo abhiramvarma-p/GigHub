@@ -136,8 +136,19 @@ const NotificationBell = () => {
 
   return (
     <>
-      <IconButton color="inherit" onClick={handleClick}>
-        <Badge badgeContent={unreadCount} color="error">
+      <IconButton 
+        color="inherit" 
+        onClick={handleClick}
+        sx={{ 
+          width: 40,
+          height: 40,
+          color: '#FEF6EB',
+          '&:hover': {
+            backgroundColor: '#A35C7A',
+          }
+        }}
+      >
+        <Badge badgeContent={unreadCount} color="primary">
           <NotificationsIcon />
         </Badge>
       </IconButton>
@@ -146,45 +157,118 @@ const NotificationBell = () => {
         open={Boolean(anchorEl)}
         onClose={handleClose}
         PaperProps={{
-          style: {
+          sx: {
+            mt: 1.5,
             maxHeight: 400,
             width: 360,
-          },
+            background: '#212121',
+            color: '#FEF6EB',
+            border: '1px solid #A35C7A',
+            '& .MuiMenuItem-root': {
+              color: '#FEF6EB',
+              fontFamily: 'Futura',
+              fontSize: '0.9rem',
+              letterSpacing: '0.05em',
+              '&:hover': {
+                backgroundColor: '#A35C7A',
+              },
+            },
+          }
         }}
       >
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Notifications</Typography>
+        <Box sx={{ 
+          p: 2, 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          borderBottom: '1px solid #A35C7A',
+        }}>
+          <Typography 
+            variant="h6"
+            sx={{ 
+              fontFamily: 'Futura',
+              fontSize: '1rem',
+              letterSpacing: '0.05em',
+            }}
+          >
+            Notifications
+          </Typography>
           {unreadCount > 0 && (
-            <Button size="small" onClick={handleMarkAllRead}>
+            <Button 
+              size="small" 
+              onClick={handleMarkAllRead}
+              sx={{
+                color: '#FEF6EB',
+                '&:hover': {
+                  backgroundColor: '#A35C7A',
+                },
+              }}
+            >
               Mark all as read
             </Button>
           )}
         </Box>
-        <Divider />
-        <List>
-          {notifications.length === 0 ? (
-            <ListItem>
-              <ListItemText primary="No notifications" />
-            </ListItem>
-          ) : (
+        <List sx={{ p: 0 }}>
+          {notifications.length > 0 ? (
             notifications.map((notification) => (
               <ListItem
                 key={notification._id}
-                button
                 onClick={() => handleNotificationClick(notification)}
                 sx={{
-                  bgcolor: notification.read ? 'inherit' : 'action.hover',
+                  cursor: 'pointer',
+                  backgroundColor: notification.read ? 'transparent' : 'rgba(163, 92, 122, 0.1)',
+                  borderBottom: '1px solid rgba(163, 92, 122, 0.1)',
+                  '&:hover': {
+                    backgroundColor: '#A35C7A',
+                  },
                 }}
               >
-                <ListItemIcon>
+                <ListItemIcon sx={{ color: '#FEF6EB', minWidth: 40 }}>
                   {getNotificationIcon(notification.type)}
                 </ListItemIcon>
                 <ListItemText
-                  primary={notification.message}
-                  secondary={new Date(notification.createdAt).toLocaleString()}
+                  primary={
+                    <Typography 
+                      variant="body2"
+                      sx={{ 
+                        fontFamily: 'Futura',
+                        color: '#FEF6EB',
+                      }}
+                    >
+                      {notification.message}
+                    </Typography>
+                  }
+                  secondary={
+                    <Typography 
+                      variant="caption"
+                      sx={{ 
+                        color: '#C890A7',
+                        fontFamily: 'Futura',
+                      }}
+                    >
+                      {new Date(notification.createdAt).toLocaleDateString()}
+                    </Typography>
+                  }
                 />
               </ListItem>
             ))
+          ) : (
+            <ListItem>
+              <ListItemText
+                primary={
+                  <Typography 
+                    variant="body2"
+                    sx={{ 
+                      textAlign: 'center',
+                      color: '#C890A7',
+                      fontFamily: 'Futura',
+                    }}
+                  >
+                    No notifications
+                  </Typography>
+                }
+              />
+            </ListItem>
           )}
         </List>
       </Menu>

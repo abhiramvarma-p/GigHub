@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { predefinedCategories } from '../data/predefinedCategories';
+import RupeeSymbol from '../components/RupeeSymbol';
 
 const CATEGORIES = predefinedCategories.map(category => category.name);
 
@@ -298,17 +299,23 @@ const CreateJob = () => {
 
             <Grid item xs={12} md={6}>
               <TextField
+                required
                 fullWidth
-                label={`${formData.pay.type === 'hourly' ? 'Hourly Rate' : 'Fixed Pay'} (₹)`}
-                name="pay.amount"
                 type="number"
+                name="pay.amount"
+                label={`${formData.pay.type === 'hourly' ? 'Hourly Rate' : 'Fixed Pay'}`}
                 value={formData.pay.amount}
                 onChange={handleChange}
-                required
+                error={Boolean(error.pay?.amount)}
+                helperText={error.pay?.amount}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <span style={{ fontFamily: 'system-ui, -apple-system, Arial' }}>&#8377;</span>
+                    </InputAdornment>
+                  ),
+                  inputProps: { min: 0 }
                 }}
-                inputProps={{ min: 0 }}
               />
             </Grid>
 
