@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const { parse_resume } = require('../utils/resume_parser');
 
 // Configure multer for handling file uploads
 const storage = multer.diskStorage({
@@ -36,6 +37,31 @@ const upload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
+});
+
+// Configure multer for resume uploads
+const resumeStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/resumes')
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        cb(null, 'resume-' + uniqueSuffix + path.extname(file.originalname))
+    }
+});
+
+const resumeUpload = multer({
+    storage: resumeStorage,
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/pdf') {
+            cb(null, true);
+        } else {
+            cb(new Error('Only PDF files are allowed!'), false);
+        }
+    },
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
 });
 
 // Get user profile by ID
@@ -173,21 +199,51 @@ router.delete('/portfolio/:id', auth, async (req, res) => {
     }
 });
 
-// Upload resume (placeholder for future enhancement)
-router.post('/resume', auth, async (req, res) => {
+// Upload and parse resume
+router.post('/resume', auth, resumeUpload.single('resume'), async (req, res) => {
     try {
-        // This is a placeholder for future resume parsing functionality
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        if (req.user.role !== 'student') {
+            return res.status(403).json({ message: 'Only students can upload resumes' });
+        }
+
+        // Parse the resume and extract skills
+        const filePath = path.join(__dirname, '..', req.file.path);
+        const skills = await parse_resume(filePath);
+
+        // Update user's resume information
         req.user.resume = {
-            url: req.body.url,
-            skills: [] // Will be populated by resume parsing service
+            file: req.file.path,
+            lastUpdated: new Date(),
+            parsedSkills: skills
         };
+
+        // Add any new skills to the user's skills array
+        const existingSkillNames = new Set(req.user.skills.map(s => s.name.toLowerCase()));
+        const newSkills = skills.filter(skill => !existingSkillNames.has(skill.toLowerCase()))
+            .map(skill => ({
+                name: skill,
+                category: 'Other', // Default category
+                level: 'beginner' // Default level
+            }));
+
+        if (newSkills.length > 0) {
+            req.user.skills = [...req.user.skills, ...newSkills];
+        }
+
         await req.user.save();
-        res.status(201).json({
-            message: 'Resume uploaded successfully. Skill extraction coming soon!',
-            resume: req.user.resume
+
+        res.json({
+            message: 'Resume uploaded and parsed successfully',
+            skills: skills,
+            newSkillsAdded: newSkills.length
         });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error('Resume upload error:', error);
+        res.status(500).json({ message: error.message });
     }
 });
 

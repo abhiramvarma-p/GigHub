@@ -1,0 +1,43 @@
+JOHN DOE
+Software Engineer
+john.doe@email.com | (555) 123-4567
+
+SKILLS
+Technical Skills:
+- Python, Java, JavaScript, C++
+- React, Node.js, Django
+- Docker, Kubernetes
+- AWS, Azure, GCP
+- MongoDB, PostgreSQL
+- Git, Jenkins, CircleCI
+
+Soft Skills:
+- Team Leadership
+- Project Management
+- Agile Methodologies
+- Problem Solving
+- Communication
+
+Tools & Software:
+- Visual Studio Code
+- PyCharm
+- Adobe Creative Suite
+- Jira, Confluence
+- Postman
+
+EXPERIENCE
+Senior Software Engineer | Tech Corp
+2020 - Present
+- Led development of microservices architecture
+- Implemented CI/CD pipelines
+- Managed team of 5 developers
+
+Software Developer | StartUp Inc
+2018 - 2020
+- Developed full-stack web applications
+- Optimized database performance
+- Implemented REST APIs
+
+EDUCATION
+Bachelor of Science in Computer Science
+University of Technology | 2018 

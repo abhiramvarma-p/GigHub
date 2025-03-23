@@ -21,13 +21,13 @@ const SkillTree = ({ skills, onUpdateSkills }) => {
     const nodes = [];
     const links = [];
 
-    // Add category nodes
+    // Add category nodes with increased size
     skillCategories.forEach(category => {
       nodes.push({
         id: `category-${category}`,
         name: category,
         type: 'category',
-        val: 2,
+        val: 3, // Increased size for category nodes
         color: '#2c3e50'
       });
     });
@@ -167,102 +167,48 @@ const SkillTree = ({ skills, onUpdateSkills }) => {
       <ForceGraph2D
         graphData={graphData}
         nodeLabel="name"
-        nodeAutoColorBy="type"
-        linkColor="color"
+        nodeRelSize={6}
         linkWidth={1}
-        nodeRelSize={12}
-        nodeCanvasObject={(node, ctx, globalScale) => {
-          const label = node.name;
-          const fontSize = 14 / globalScale;
-          const nodeRadius = node.type === 'category' ? 12 : 8;
-          
-          // Draw node circle
-          ctx.fillStyle = node.color;
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI);
-          ctx.fill();
-          
-          // Draw node border
-          ctx.strokeStyle = '#2c3e50';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          
-          // Draw text
-          ctx.font = `bold ${fontSize}px Sans-Serif`;
-          ctx.fillStyle = '#2c3e50';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          
-          // Add background to text for better readability
-          const textWidth = ctx.measureText(label).width;
-          const textHeight = fontSize;
-          const padding = 6;
-          
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.fillRect(
-            node.x - textWidth/2 - padding,
-            node.y + nodeRadius + 4 - textHeight/2 - padding,
-            textWidth + padding * 2,
-            textHeight + padding * 2
-          );
-          
-          // Draw text
-          ctx.fillStyle = '#2c3e50';
-          ctx.fillText(label, node.x, node.y + nodeRadius + 4);
-        }}
+        linkDirectionalParticles={1}
+        linkDirectionalParticleSpeed={0.004}
+        d3Force={('charge', -1000)}
+        d3VelocityDecay={0.3}
         onNodeClick={handleNodeClick}
         onNodeHover={setHoveredNode}
-        backgroundColor="#ffffff"
-        d3Force={('charge', -500)}
-        d3VelocityDecay={0.2}
-        d3Forces={{
-          charge: -500,
-          link: 0.1,
-          center: 0.05,
-          collision: 4,
-          x: 0.1,
-          y: 0.1
+        nodeCanvasObject={(node, ctx, globalScale) => {
+          const label = node.name;
+          const fontSize = node.type === 'category' ? 14 : 12;
+          ctx.font = `${fontSize}px Sans-Serif`;
+          ctx.fillStyle = node.color;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.type === 'category' ? 8 : 6, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.fillStyle = '#000';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, node.x, node.y + 15);
         }}
-        width={800}
-        height={400}
       />
-
-      {hoveredNode && hoveredNode.type === 'skill' && (
-        <Paper
-          elevation={3}
-          sx={{
-            position: 'absolute',
-            top: 16,
-            left: 16,
-            p: 2,
-            borderRadius: 2,
-            zIndex: 2,
-            bgcolor: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)'
+      <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => {
+            setEditMode(false);
+            setSelectedNode(null);
+            setNewSkill({
+              name: '',
+              category: '',
+              level: 'beginner'
+            });
+            setOpenDialog(true);
           }}
         >
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#2c3e50' }}>
-            {hoveredNode.name}
-          </Typography>
-          <Chip
-            icon={<StarIcon />}
-            label={getSkillLevelLabel(hoveredNode.level)}
-            size="small"
-            sx={{ 
-              mt: 1,
-              bgcolor: getSkillColor(hoveredNode.level),
-              color: 'white'
-            }}
-          />
-        </Paper>
-      )}
+          Add Skill
+        </Button>
+      </Box>
 
-      <Dialog 
-        open={openDialog} 
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
           {editMode ? 'Edit Skill' : 'Add New Skill'}
         </DialogTitle>
