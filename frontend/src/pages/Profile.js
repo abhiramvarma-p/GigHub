@@ -650,11 +650,24 @@ const Profile = () => {
           )}
         </Paper>
 
-        <Paper sx={{ p: 3 }}>
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">Contact Information</Typography>
+            {isOwnProfile && (
+              <IconButton onClick={() => setIsEditing(true)}>
+                <EditIcon />
+              </IconButton>
+            )}
           </Box>
           <Stack spacing={2}>
+            <Typography>
+              <strong>Email:</strong> {user.email}
+            </Typography>
+            {profileData.contactInfo?.phone && (
+              <Typography>
+                <strong>Phone:</strong> {profileData.contactInfo.phone}
+              </Typography>
+            )}
             {profileData.contactInfo?.linkedin && (
               <Link
                 href={profileData.contactInfo.linkedin}
@@ -666,19 +679,21 @@ const Profile = () => {
                 LinkedIn Profile
               </Link>
             )}
-            {profileData.contactInfo?.phone && (
-              <Typography>
-                <strong>Phone:</strong> {profileData.contactInfo.phone}
-              </Typography>
-            )}
             {profileData.contactInfo?.website && (
               <Link
                 href={profileData.contactInfo.website}
                 target="_blank"
                 rel="noopener noreferrer"
+                sx={{ display: 'inline-flex', alignItems: 'center' }}
               >
+                <LinkIcon sx={{ mr: 1 }} />
                 Personal Website
               </Link>
+            )}
+            {!profileData.contactInfo?.phone && !profileData.contactInfo?.linkedin && !profileData.contactInfo?.website && (
+              <Typography color="text.secondary">
+                No additional contact information added yet.
+              </Typography>
             )}
           </Stack>
         </Paper>
@@ -808,9 +823,9 @@ const Profile = () => {
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
-                onClick={() => setOpenSkillDialog(true)}
+                onClick={() => setManageSkillsOpen(true)}
               >
-                Add Skill
+                Manage Skills
               </Button>
             )}
           </Box>
@@ -866,7 +881,7 @@ const Profile = () => {
           </Grid>
         </Paper>
 
-        <Paper elevation={3} sx={{ p: 3 }}>
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">Resume</Typography>
             {isOwnProfile && (
@@ -925,6 +940,54 @@ const Profile = () => {
               No resume uploaded yet.
             </Typography>
           )}
+        </Paper>
+
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Contact Information</Typography>
+            {isOwnProfile && (
+              <IconButton onClick={() => setIsEditing(true)}>
+                <EditIcon />
+              </IconButton>
+            )}
+          </Box>
+          <Stack spacing={2}>
+            <Typography>
+              <strong>Email:</strong> {user.email}
+            </Typography>
+            {profileData.contactInfo?.phone && (
+              <Typography>
+                <strong>Phone:</strong> {profileData.contactInfo.phone}
+              </Typography>
+            )}
+            {profileData.contactInfo?.linkedin && (
+              <Link
+                href={profileData.contactInfo.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ display: 'inline-flex', alignItems: 'center' }}
+              >
+                <LinkedInIcon sx={{ mr: 1 }} />
+                LinkedIn Profile
+              </Link>
+            )}
+            {profileData.contactInfo?.website && (
+              <Link
+                href={profileData.contactInfo.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ display: 'inline-flex', alignItems: 'center' }}
+              >
+                <LinkIcon sx={{ mr: 1 }} />
+                Personal Website
+              </Link>
+            )}
+            {!profileData.contactInfo?.phone && !profileData.contactInfo?.linkedin && !profileData.contactInfo?.website && (
+              <Typography color="text.secondary">
+                No additional contact information added yet.
+              </Typography>
+            )}
+          </Stack>
         </Paper>
       </Grid>
     </Grid>
@@ -996,8 +1059,18 @@ const Profile = () => {
                 />
               </>
             )}
+            <Typography variant="subtitle1" sx={{ mt: 2 }}>Contact Information</Typography>
             <TextField
-              label="LinkedIn"
+              label="Phone Number"
+              value={profileData.contactInfo.phone}
+              onChange={(e) => setProfileData({
+                ...profileData,
+                contactInfo: { ...profileData.contactInfo, phone: e.target.value }
+              })}
+              fullWidth
+            />
+            <TextField
+              label="LinkedIn Profile"
               value={profileData.contactInfo.linkedin}
               onChange={(e) => setProfileData({
                 ...profileData,
@@ -1005,17 +1078,6 @@ const Profile = () => {
               })}
               fullWidth
             />
-            {user?.role === 'student' && (
-              <TextField
-                label="GitHub"
-                value={profileData.contactInfo.github}
-                onChange={(e) => setProfileData({
-                  ...profileData,
-                  contactInfo: { ...profileData.contactInfo, github: e.target.value }
-                })}
-                fullWidth
-              />
-            )}
             <TextField
               label="Personal Website"
               value={profileData.contactInfo.website}

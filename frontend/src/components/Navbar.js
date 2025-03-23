@@ -127,26 +127,28 @@ const Navbar = () => {
             </StyledButton>
             {user && (
               <>
-                <StyledButton
-                  onClick={() => navigate('/my-applications')}
-                  sx={{ display: { xs: 'none', sm: 'block' } }}
-                >
-                  My Applications
-                </StyledButton>
+                {user.role === 'student' && (
+                  <>
+                    <StyledButton
+                      onClick={() => navigate('/my-applications')}
+                      sx={{ display: { xs: 'none', sm: 'block' } }}
+                    >
+                      My Applications
+                    </StyledButton>
+                    <StyledButton
+                      onClick={() => navigate('/dashboard')}
+                      sx={{ display: { xs: 'none', sm: 'block' } }}
+                    >
+                      Dashboard
+                    </StyledButton>
+                  </>
+                )}
                 {user.role === 'recruiter' && (
                   <StyledButton
                     onClick={() => navigate('/create-job')}
                     sx={{ display: { xs: 'none', sm: 'block' } }}
                   >
                     Post a Job
-                  </StyledButton>
-                )}
-                {user.role === 'student' && (
-                  <StyledButton
-                    onClick={() => navigate('/dashboard')}
-                    sx={{ display: { xs: 'none', sm: 'block' } }}
-                  >
-                    Dashboard
                   </StyledButton>
                 )}
               </>
