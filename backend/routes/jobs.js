@@ -129,7 +129,8 @@ router.patch('/:id', auth, async (req, res) => {
         recipient: applicant.student,
         type: 'application_deleted',
         job: job._id,
-        message: `Your application for ${job.title} was deleted due to job updates. Please apply again if interested.`
+        message: `Your application for ${job.title} was deleted due to job updates. Please apply again if interested.`,
+        link: `/jobs/${job._id}`
       }).save();
     }
 
@@ -201,7 +202,8 @@ router.post('/:id/apply', auth, async (req, res) => {
       recipient: job.recruiter._id,
       type: 'application',
       job: job._id,
-      message: `New application for ${job.title} from ${req.user.name}`
+      message: `New application for ${job.title} from ${req.user.name}`,
+      link: `/jobs/${job._id}`
     }).save();
 
     // Populate the job with recruiter and applicant details
@@ -243,7 +245,8 @@ router.patch('/:id/applications/:applicationId', auth, async (req, res) => {
       recipient: application.student,
       type: status === 'Accepted' ? 'application_accepted' : 'application_rejected',
       job: job._id,
-      message: `Your application for ${job.title} has been ${status.toLowerCase()}`
+      message: `Your application for ${job.title} has been ${status.toLowerCase()}`,
+      link: `/jobs/${job._id}`
     }).save();
 
     // Populate the job with recruiter details

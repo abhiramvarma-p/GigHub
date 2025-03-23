@@ -112,6 +112,13 @@ const EditJob = () => {
         }
       }));
     } else {
+      // Validate enum values
+      if (name === 'type' && !['remote', 'hybrid', 'onsite'].includes(value)) {
+        return; // Invalid type value
+      }
+      if (name === 'experience' && !['Beginner', 'Intermediate', 'Advanced', 'Expert'].includes(value)) {
+        return; // Invalid experience value
+      }
       setFormData(prev => ({
         ...prev,
         [name]: value
@@ -153,12 +160,23 @@ const EditJob = () => {
         return;
       }
 
+      // Validate enum values
+      if (!['remote', 'hybrid', 'onsite'].includes(formData.type)) {
+        setError('Invalid work type selected');
+        return;
+      }
+      if (!['Beginner', 'Intermediate', 'Advanced', 'Expert'].includes(formData.experience)) {
+        setError('Invalid experience level selected');
+        return;
+      }
+
       // Prepare job data
       const jobData = {
         title: formData.title,
         description: formData.description,
         requirements: formData.requirements.split('\n').filter(req => req.trim()),
         category: formData.category,
+        company: formData.company,
         pay: {
           amount: Number(formData.pay.amount),
           type: formData.pay.type
@@ -169,12 +187,13 @@ const EditJob = () => {
         experience: formData.experience,
         deadline: new Date(formData.deadline).toISOString(),
         status: formData.status,
-        company: formData.company,
         requiredSkills: formData.requiredSkills.map(skill => ({
           name: skill,
           level: formData.experience
         }))
       };
+
+      console.log('Submitting job data:', jobData);
 
       const token = localStorage.getItem('token');
       await axios.patch(

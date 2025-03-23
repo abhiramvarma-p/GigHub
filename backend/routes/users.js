@@ -64,6 +64,22 @@ const resumeUpload = multer({
     }
 });
 
+// Get recommended jobs based on user skills
+router.get('/recommended-jobs', auth, async (req, res) => {
+    try {
+        const userSkills = req.user.skills.map(skill => skill.name);
+        const Job = require('../models/Job');
+        const jobs = await Job.find({
+            'requiredSkills.name': { $in: userSkills },
+            status: 'Open'
+        }).populate('recruiter', 'name email');
+        
+        res.json(jobs);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
 // Get user profile by ID
 router.get('/:id', async (req, res) => {
     try {
@@ -267,22 +283,6 @@ router.post('/confirm-skills', auth, async (req, res) => {
     } catch (error) {
         console.error('Error confirming skills:', error);
         res.status(500).json({ message: error.message });
-    }
-});
-
-// Get recommended jobs based on user skills
-router.get('/recommended-jobs', auth, async (req, res) => {
-    try {
-        const userSkills = req.user.skills.map(skill => skill.name);
-        const Job = require('../models/Job');
-        const jobs = await Job.find({
-            'requiredSkills.name': { $in: userSkills },
-            status: 'Open'
-        }).populate('employer', 'name email');
-        
-        res.json(jobs);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
     }
 });
 

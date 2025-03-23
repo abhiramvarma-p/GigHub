@@ -68,6 +68,13 @@ const CreateJob = () => {
         }
       }));
     } else {
+      // Validate enum values
+      if (name === 'type' && !['remote', 'hybrid', 'onsite'].includes(value)) {
+        return; // Invalid type value
+      }
+      if (name === 'experience' && !['Beginner', 'Intermediate', 'Advanced', 'Expert'].includes(value)) {
+        return; // Invalid experience value
+      }
       setFormData(prev => ({
         ...prev,
         [name]: value
@@ -110,13 +117,30 @@ const CreateJob = () => {
         return;
       }
 
+      // Validate enum values
+      if (!['remote', 'hybrid', 'onsite'].includes(formData.type)) {
+        setError('Invalid work type selected');
+        return;
+      }
+      if (!['Beginner', 'Intermediate', 'Advanced', 'Expert'].includes(formData.experience)) {
+        setError('Invalid experience level selected');
+        return;
+      }
+
       const jobData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        requirements: formData.requirements.split('\n').filter(req => req.trim()),
+        category: formData.category,
+        company: formData.company,
         pay: {
           amount: Number(formData.pay.amount),
           type: formData.pay.type
         },
         duration: Number(formData.duration),
+        location: formData.location,
+        type: formData.type,
+        experience: formData.experience,
         deadline: new Date(formData.deadline).toISOString(),
         requiredSkills: formData.requiredSkills.map(skill => ({
           name: skill,
@@ -127,9 +151,6 @@ const CreateJob = () => {
         status: formData.status,
         createdAt: new Date().toISOString()
       };
-
-      // Remove salary field if it exists
-      delete jobData.salary;
 
       console.log('Submitting job data:', jobData);
 
@@ -148,7 +169,6 @@ const CreateJob = () => {
       console.log('Job creation response:', response.data);
       setSuccess('Job created successfully!');
       
-      // Wait a moment before navigating to show the success message
       setTimeout(() => {
         navigate('/jobs');
       }, 2000);

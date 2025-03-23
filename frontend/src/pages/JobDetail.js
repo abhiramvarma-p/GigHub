@@ -63,6 +63,28 @@ const JobDetail = () => {
       return;
     }
 
+    if (user.role !== 'student') {
+      setError('Only students can apply for jobs');
+      return;
+    }
+
+    if (!job) {
+      setError('Job details not loaded');
+      return;
+    }
+
+    if (job.status !== 'Open') {
+      setError('This job is no longer accepting applications');
+      return;
+    }
+
+    const hasApplied = job.applicants?.some(a => a.student === user._id);
+    if (hasApplied) {
+      setError('You have already applied for this job');
+      return;
+    }
+
+    setError(''); // Clear any previous errors
     setApplying(true);
     try {
       const token = localStorage.getItem('token');
@@ -74,10 +96,11 @@ const JobDetail = () => {
         }
       );
       // Refresh job details to update application status
-      fetchJobDetails();
+      await fetchJobDetails();
     } catch (error) {
       console.error('Error applying for job:', error);
-      setError(error.response?.data?.message || 'Failed to apply for the job');
+      const errorMessage = error.response?.data?.message || 'Failed to apply for the job';
+      setError(errorMessage);
     } finally {
       setApplying(false);
     }
