@@ -17,7 +17,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Box from '@mui/material/Box';
 import theme from './theme';
-import GigAI from './components/Chatbot';
+import GigAI from './components/GigAI';
 
 // Protected route component for students only
 const StudentRoute = ({ children }) => {

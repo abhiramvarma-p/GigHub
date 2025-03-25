@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import { Work, Search, TrendingUp, Person } from '@mui/icons-material';
-import ChatButton from '../components/ChatButton';
+import GigAI from '../components/Chatbot';
 
 const HeroSection = styled(Box)(({ theme }) => ({
   width: '100%',
@@ -201,7 +201,7 @@ const Home = () => {
           </Grid>
         </motion.div>
       </Container>
-      <ChatButton />
+      <GigAI />
     </Box>
   );
 };

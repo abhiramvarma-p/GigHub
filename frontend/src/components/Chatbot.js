@@ -15,8 +15,6 @@ import {
   Chat as ChatIcon,
   Close as CloseIcon,
   Send as SendIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
@@ -53,13 +51,13 @@ const ChatMessages = styled(Box)(({ theme }) => ({
   gap: theme.spacing(1),
 }));
 
-const MessageBubble = styled(Box)(({ theme, isUser }) => ({
+const MessageBubble = styled('div')(({ theme, $isUser }) => ({
   maxWidth: '80%',
   padding: theme.spacing(1, 2),
   borderRadius: '12px',
-  background: isUser ? '#A35C7A' : '#2C2C2C',
+  background: $isUser ? '#A35C7A' : '#2C2C2C',
   color: '#FEF6EB',
-  alignSelf: isUser ? 'flex-end' : 'flex-start',
+  alignSelf: $isUser ? 'flex-end' : 'flex-start',
 }));
 
 const ChatInput = styled(Box)(({ theme }) => ({
@@ -78,20 +76,19 @@ const ContactForm = styled(Box)(({ theme }) => ({
 
 const GigAI = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showContactForm, setShowContactForm] = useState(false);
   const [messages, setMessages] = useState([
     {
-      text: 'Hello! I\'m GigAI, your GigHub assistant. How can I help you today?',
+      text: 'Hello! I\'m GigAI, your career assistant. Please tell me which job you\'re interested in.',
       isUser: false,
     },
   ]);
   const [input, setInput] = useState('');
-  const [contactInfo, setContactInfo] = useState({
-    email: '',
-    phone: '',
-  });
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [selectedJob, setSelectedJob] = useState('');
+  const [userSkills, setUserSkills] = useState('');
+  const [isWaitingForSkills, setIsWaitingForSkills] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const newMessage = {
@@ -102,16 +99,98 @@ const GigAI = () => {
     setMessages((prev) => [...prev, newMessage]);
     setInput('');
 
-    // Simulate bot response
-    setTimeout(() => {
+    if (!isInitialized) {
+      if (!isWaitingForSkills) {
+        // First message should be the job
+        setSelectedJob(input);
+        setIsWaitingForSkills(true);
+        setMessages((prev) => [
+          ...prev,
+          {
+            text: 'Great! Now, please list your current skills (comma-separated).',
+            isUser: false,
+          },
+        ]);
+      } else {
+        // Second message should be the skills
+        setUserSkills(input);
+        setIsWaitingForSkills(false);
+        setIsInitialized(true);
+        initializeChat(input);
+      }
+    } else {
+      try {
+        const API_URL = process.env.NODE_ENV === 'production' 
+          ? 'https://gighub-backend.onrender.com'
+          : 'http://localhost:5000';
+
+        const response = await fetch(`${API_URL}/api/chat/message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ message: input }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to send message');
+        }
+
+        const data = await response.json();
+        setMessages((prev) => [
+          ...prev,
+          {
+            text: data.response,
+            isUser: false,
+          },
+        ]);
+      } catch (error) {
+        console.error('Error:', error);
+        setMessages((prev) => [
+          ...prev,
+          {
+            text: 'Sorry, there was an error processing your message. Please try again.',
+            isUser: false,
+          },
+        ]);
+      }
+    }
+  };
+
+  const initializeChat = async (skills) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/chat/initialize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ job: selectedJob, skills }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to initialize chat');
+      }
+
+      const data = await response.json();
       setMessages((prev) => [
         ...prev,
         {
-          text: 'I understand your message. How else can I assist you?',
+          text: data.message,
           isUser: false,
         },
       ]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error initializing chat:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: 'Sorry, there was an error initializing the chat. Please try again later.',
+          isUser: false,
+        },
+      ]);
+    }
   };
 
   const handleKeyPress = (event) => {
@@ -119,19 +198,6 @@ const GigAI = () => {
       event.preventDefault();
       handleSend();
     }
-  };
-
-  const handleContactSubmit = () => {
-    // Here you would typically send the contact information to your backend
-    console.log('Contact information:', contactInfo);
-    setShowContactForm(false);
-    setMessages(prev => [
-      ...prev,
-      {
-        text: 'Thank you for providing your contact information. We\'ll get back to you soon!',
-        isUser: false,
-      }
-    ]);
   };
 
   return (
@@ -169,77 +235,10 @@ const GigAI = () => {
 
             <ChatMessages>
               {messages.map((message, index) => (
-                <MessageBubble key={index} isUser={message.isUser}>
+                <MessageBubble key={index} $isUser={message.isUser}>
                   <Typography variant="body2">{message.text}</Typography>
                 </MessageBubble>
               ))}
-              {showContactForm && (
-                <ContactForm>
-                  <Typography variant="body2" color="#FEF6EB">
-                    Please provide your contact information:
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Email address"
-                    value={contactInfo.email}
-                    onChange={(e) => setContactInfo(prev => ({ ...prev, email: e.target.value }))}
-                    InputProps={{
-                      startAdornment: <EmailIcon sx={{ mr: 1, color: '#A35C7A' }} />,
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: '#FEF6EB',
-                        '& fieldset': {
-                          borderColor: '#A35C7A',
-                        },
-                        '&:hover fieldset': {
-                          borderColor: '#8B4B66',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#A35C7A',
-                        },
-                      },
-                    }}
-                  />
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Phone number"
-                    value={contactInfo.phone}
-                    onChange={(e) => setContactInfo(prev => ({ ...prev, phone: e.target.value }))}
-                    InputProps={{
-                      startAdornment: <PhoneIcon sx={{ mr: 1, color: '#A35C7A' }} />,
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: '#FEF6EB',
-                        '& fieldset': {
-                          borderColor: '#A35C7A',
-                        },
-                        '&:hover fieldset': {
-                          borderColor: '#8B4B66',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#A35C7A',
-                        },
-                      },
-                    }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={handleContactSubmit}
-                    sx={{
-                      background: '#A35C7A',
-                      '&:hover': {
-                        background: '#8B4B66',
-                      },
-                    }}
-                  >
-                    Submit Contact Info
-                  </Button>
-                </ContactForm>
-              )}
             </ChatMessages>
 
             <Divider sx={{ borderColor: '#A35C7A' }} />
@@ -248,10 +247,11 @@ const GigAI = () => {
               <TextField
                 fullWidth
                 size="small"
-                placeholder="Type your message..."
+                placeholder={isWaitingForSkills ? "Enter your skills (comma-separated)..." : "Type your message..."}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
+                disabled={!isOpen}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#FEF6EB',
@@ -265,18 +265,16 @@ const GigAI = () => {
                       borderColor: '#A35C7A',
                     },
                   },
-                  '& .MuiInputLabel-root': {
-                    color: '#FEF6EB',
-                  },
                 }}
               />
               <IconButton
                 color="primary"
                 onClick={handleSend}
+                disabled={!input.trim() || !isOpen}
                 sx={{
                   color: '#A35C7A',
                   '&:hover': {
-                    background: 'rgba(163, 92, 122, 0.1)',
+                    color: '#8B4B66',
                   },
                 }}
               >
