@@ -120,11 +120,7 @@ const GigAI = () => {
       }
     } else {
       try {
-        const API_URL = process.env.NODE_ENV === 'production' 
-          ? 'https://gighub-backend.onrender.com'
-          : 'http://localhost:5000';
-
-        const response = await fetch(`${API_URL}/api/chat/message`, {
+        const response = await fetch('http://localhost:5000/api/chat/message', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -109,80 +109,11 @@ router.post('/initialize', async (req, res) => {
 router.post('/chat', async (req, res) => {
   try {
     const { message } = req.body;
-    const session = chatSessions.get(req.sessionID);
-
-    if (!session) {
-      return res.status(400).json({ error: 'Chat not initialized' });
-    }
-
-    const { job, skills, retriever, chatHistory } = session;
-
-    // Look for specific keywords in the job document
-    const retrievedDocs = await retriever.invoke(message);
-    let context = formatDocs(retrievedDocs);
-
-    // Extract required skills from the document
-    const extractedSkills = new Set(context.toLowerCase().match(/\d+\.\s+([A-Za-z0-9\-.]+)/g) || []);
-    const missingSkills = [...extractedSkills].filter(skill => !skills.includes(skill.toLowerCase()));
-
-    // Check if the user is asking about missing skills
-    if (message.toLowerCase().includes('missing') || message.toLowerCase().includes('what skills') || message.toLowerCase().includes('need for this job')) {
-      context = missingSkills.length > 0 
-        ? `You are missing: ${missingSkills.join(', ')}.`
-        : "You already have all the required skills.";
-    }
-    // Handle different types of questions
-    else if (message.toLowerCase().includes('required skills') || message.toLowerCase().includes('skills needed')) {
-      context = formatDocs(await retriever.invoke("Required skills")) || "I couldn't find required skills in the document.";
-    }
-    else if (message.toLowerCase().includes('skills information') || message.toLowerCase().includes('tell me about') || message.toLowerCase().includes('explain')) {
-      context = formatDocs(await retriever.invoke(message)) || await llm.invoke(`Explain ${message.replace('tell me about', '').trim()} in simple terms.`);
-    }
-    else if (message.toLowerCase().includes('skill learning resources') || message.toLowerCase().includes('how to learn') || message.toLowerCase().includes('where to learn')) {
-      context = formatDocs(await retriever.invoke("Skill learning resources")) || await llm.invoke(`Give me resources to learn ${message.replace('how to learn', '').trim()}.`);
-    }
-
-    // If still no useful context, ask LLM to generate an answer
-    if (!context) {
-      context = await llm.invoke(`Answer the question: ${message}`);
-    }
-
-    chatHistory.push(`User: ${message}\nGigAI: ${context}`);
-
-    const formattedPrompt = await prompt.format({
-      selected_job: job,
-      user_skills: skills.join(', '),
-      chat_history: chatHistory.slice(-3).join('\n'),
-      context,
-      question: message
-    });
-
-    let answer = (await llm.invoke(formattedPrompt)).trim();
-
-    // Filter out unnecessary phrases
-    const filteredPhrases = ["Sure", "Great!", "Ah, I see!", "Here is the response:", "Of course", "Greetings!", "Other skills you may need include:"];
-    for (const phrase of filteredPhrases) {
-      if (answer.startsWith(phrase)) {
-        answer = answer.slice(phrase.length).trim();
-      }
-    }
-
-    // Handle generic responses
-    const genericResponses = ["got it", "thanks", "thanks!", "thank you", "thank you!", "alright", "hmm", "ok", "understood", "appreciate it", "makes sense"];
-    if (genericResponses.includes(message.toLowerCase())) {
-      answer = "You're welcome! Let me know if you need anything else.";
-    } else if (!context) {
-      answer = "I'm not sure, but I can try to help if you ask differently.";
-    }
-
-    // Update chat history
-    chatHistory.push(`User: ${message}\nGigAI: ${answer}`);
-    session.chatHistory = chatHistory;
-
-    res.json({ response: answer });
+    const response = await llm.invoke(message);
+    res.json({ response: response.content });
   } catch (error) {
     console.error('Error processing message:', error);
-    res.status(500).json({ error: 'Failed to process message' });
+    res.status(500).json({ error: 'Error processing message' });
   }
 });
 
