@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Navbar from './components/Navbar';
@@ -14,9 +14,57 @@ import MyApplications from './pages/MyApplications';
 import CreateJob from './pages/CreateJob';
 import EditJob from './pages/EditJob';
 import StudentDashboard from './pages/StudentDashboard';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Box from '@mui/material/Box';
 import theme from './theme';
+import GigAI from './components/GigAI';
+
+// Protected route component for students only
+const StudentRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return null;
+  }
+  
+  if (!user || user.role !== 'student') {
+    return <Navigate to="/jobs" />;
+  }
+  
+  return children;
+};
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/profile/:id?" element={<Profile />} />
+      <Route path="/jobs" element={<Jobs />} />
+      <Route path="/jobs/:id" element={<JobDetail />} />
+      <Route path="/jobs/:id/edit" element={<EditJob />} />
+      <Route path="/messages/:userId?/:jobId?" element={<Messages />} />
+      <Route 
+        path="/my-applications" 
+        element={
+          <StudentRoute>
+            <MyApplications />
+          </StudentRoute>
+        } 
+      />
+      <Route path="/create-job" element={<CreateJob />} />
+      <Route 
+        path="/dashboard" 
+        element={
+          <StudentRoute>
+            <StudentDashboard />
+          </StudentRoute>
+        } 
+      />
+    </Routes>
+  );
+}
 
 function App() {
   return (
@@ -35,20 +83,9 @@ function App() {
               background: theme.palette.background.default,
             }}
           >
-            <Routes>
-              <Route path="/" element={<HomeRedirect />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/profile/:id?" element={<Profile />} />
-              <Route path="/jobs" element={<Jobs />} />
-              <Route path="/jobs/:id" element={<JobDetail />} />
-              <Route path="/jobs/:id/edit" element={<EditJob />} />
-              <Route path="/messages/:userId?/:jobId?" element={<Messages />} />
-              <Route path="/my-applications" element={<MyApplications />} />
-              <Route path="/create-job" element={<CreateJob />} />
-              <Route path="/dashboard" element={<StudentDashboard />} />
-            </Routes>
+            <AppRoutes />
           </Box>
+          <GigAI />
         </Box>
       </AuthProvider>
     </ThemeProvider>
